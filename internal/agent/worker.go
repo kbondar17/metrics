@@ -20,10 +20,10 @@ func NewWorker(config AgentConfig, logger *log.Logger) Worker {
 	}
 }
 
-func (self Worker) Start() {
+func (w Worker) Start() {
 	for {
-		data := self.collector.CollectMetrics()
-		self.client.SendMetricContainer(data)
+		data := w.collector.CollectMetrics()
+		w.client.SendMetricContainer(data)
 	}
 
 }

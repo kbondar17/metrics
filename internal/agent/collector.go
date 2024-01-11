@@ -33,7 +33,7 @@ func parseMetric(metricName string, value reflect.Value) string {
 }
 
 // CollectMetrics collects metrics from runtime and returns them in MetricSendContainer
-func (self *Collector) CollectMetrics() m.MetricSendContainer {
+func (coll *Collector) CollectMetrics() m.MetricSendContainer {
 	var mem runtime.MemStats
 
 	container := m.NewMetricSendContainer()
@@ -42,7 +42,7 @@ func (self *Collector) CollectMetrics() m.MetricSendContainer {
 	for {
 		PollCount++
 
-		for metric, _ := range container.GaugeMetrics {
+		for metric := range container.GaugeMetrics {
 			runtime.ReadMemStats(&mem)
 			v := reflect.ValueOf(mem)
 			metricValueRaw := v.FieldByName(metric)
@@ -51,12 +51,11 @@ func (self *Collector) CollectMetrics() m.MetricSendContainer {
 
 		container.UserMetrcs["RandomValue"] = fmt.Sprintf("%f", rand.Float64())
 
-		if int(time.Since(start).Seconds()) >= self.config.ReportInterval {
-			self.logger.Println("Time to send metrics. Collected data: ", container)
-			start = time.Now()
+		if int(time.Since(start).Seconds()) >= coll.config.ReportInterval {
+			coll.logger.Println("Time to send metrics. Collected data: ", container)
 			break
 		}
-		time.Sleep(time.Duration(self.config.PollInterval) * time.Second)
+		time.Sleep(time.Duration(coll.config.PollInterval) * time.Second)
 
 	}
 

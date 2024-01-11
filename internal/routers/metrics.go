@@ -22,7 +22,6 @@ func registerCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, m
 			return
 		}
 		c.JSON(200, metric)
-		return
 	})
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
@@ -30,7 +29,6 @@ func registerCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, m
 		value, err := strconv.Atoi(c.Params.ByName("value"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		err = repository.UpdateMetric(name, models.CounterType, value)
 		if err == utils.ErrorNotFound {
@@ -47,7 +45,6 @@ func registerCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, m
 
 	rg.POST("/", func(c *gin.Context) {
 		c.Status(http.StatusNotFound)
-		return
 	})
 
 }
@@ -59,14 +56,11 @@ func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, met
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
 		if err == utils.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": metricName, "error": "metric not found"})
-			return
 		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		c.JSON(200, metric)
-		return
 	})
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
@@ -76,13 +70,11 @@ func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, met
 		if err != nil {
 			log.Println("error parsing path params", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 
 		err = repository.UpdateMetric(name, models.GaugeType, value)
 		if err == utils.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
-			return
 		}
 		if err != nil {
 			log.Println("error updating metric :: ", err)
@@ -93,7 +85,6 @@ func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, met
 
 	rg.POST("/", func(c *gin.Context) {
 		c.Status(http.StatusNotFound)
-		return
 	})
 
 }
@@ -109,14 +100,14 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 		c.JSON(200, body)
 
 	})
-	r.LoadHTMLGlob("metrics/templates/*")
+	r.LoadHTMLGlob("/Users/makbuk/go/src/yandex/metrics/templates/*")
+	// r.LoadHTMLGlob("metrics/templates/*")
 
 	r.GET("/metrics/all", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})
-		return
 
 	})
 

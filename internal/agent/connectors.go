@@ -13,7 +13,7 @@ import (
 )
 
 type UserClient struct {
-	baseUrl    url.URL
+	baseURL    url.URL
 	httpClient *gorequest.SuperAgent
 	logger     *log.Logger
 }
@@ -36,29 +36,29 @@ func NewUserClient(config AgentConfig, logger *log.Logger) UserClient {
 
 	userClient = UserClient{
 		httpClient: client,
-		baseUrl:    config.ServerAddress,
+		baseURL:    config.ServerAddress,
 		logger:     logger,
 	}
 	return userClient
 }
 
 // SendSingleLog sends single log to server
-func (self UserClient) SendSingleLog(metricName string, metricType m.MetricType, strValue string) error {
+func (uc UserClient) SendSingleLog(metricName string, metricType m.MetricType, strValue string) error {
 
-	url, err := url.JoinPath(self.baseUrl.String(), "/update/", string(metricType), metricName, strValue)
+	url, err := url.JoinPath(uc.baseURL.String(), "/update/", string(metricType), metricName, strValue)
 
-	self.logger.Println("Sending data to:: ", url)
+	uc.logger.Println("Sending data to:: ", url)
 
 	if err != nil {
-		err := fmt.Errorf("Error while creating url  %v", err)
+		err := fmt.Errorf("error while creating url  %v", err)
 		fmt.Println("Error while creating url  ", err)
 		return err
 	}
 
-	_, _, errs := self.httpClient.Post(url).End()
+	_, _, errs := uc.httpClient.Post(url).End()
 
 	if errs != nil {
-		err := fmt.Errorf("Error while sending data  %v", errs)
+		err := fmt.Errorf("error while sending data  %v", errs)
 		fmt.Println("Error while sending data  ", err)
 		return err
 	}
@@ -66,7 +66,7 @@ func (self UserClient) SendSingleLog(metricName string, metricType m.MetricType,
 }
 
 // SendMultipleLogsAsync iterates over map and sends logs to server
-func (self UserClient) SendMultipleLogsAsync(data map[string]string, metricType m.MetricType) {
+func (uc UserClient) SendMultipleLogsAsync(data map[string]string, metricType m.MetricType) {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 50)
 
@@ -79,7 +79,7 @@ func (self UserClient) SendMultipleLogsAsync(data map[string]string, metricType 
 			defer wg.Done()
 			sem <- 1 // Acquire a token
 			// self.SendSingleLog(metric, metricType, value)
-			if err := self.SendSingleLog(metric, metricType, value); err != nil {
+			if err := uc.SendSingleLog(metric, metricType, value); err != nil {
 				errCh <- err
 			}
 			<-sem // Release the token
@@ -88,34 +88,34 @@ func (self UserClient) SendMultipleLogsAsync(data map[string]string, metricType 
 
 	wg.Wait()
 
-	self.logger.Println(metricType, " data sent")
+	uc.logger.Println(metricType, " data sent")
 
 	for err := range errCh {
 		if err != nil {
-			self.logger.Println("Error while sending data", err)
+			uc.logger.Println("Error while sending data", err)
 		}
 	}
-
 }
 
-func (self UserClient) SendMetricContainer(data m.MetricSendContainer) {
+func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 	var wg sync.WaitGroup
 
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		self.SendMultipleLogsAsync(data.GaugeMetrics, m.GaugeType)
+		uc.SendMultipleLogsAsync(data.GaugeMetrics, m.GaugeType)
 	}()
 
 	go func() {
 		defer wg.Done()
-		self.SendMultipleLogsAsync(data.UserMetrcs, m.GaugeType)
+		uc.SendMultipleLogsAsync(data.UserMetrcs, m.GaugeType)
 	}()
 
 	go func() {
 		defer wg.Done()
-		self.SendMultipleLogsAsync(data.CounterMetrics, m.CounterType)
+		uc.SendMultipleLogsAsync(data.CounterMetrics, m.CounterType)
 	}()
 
-	wg.Wait()
+	// wg.Wait()
+
 }
