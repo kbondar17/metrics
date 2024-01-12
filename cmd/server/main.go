@@ -13,7 +13,7 @@ func getConfig() string {
 	// host := flag.String("host", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
 	// flag.Parse()
 	// return *host
-	return "http://localhost:8080"
+	return "localhost:8080"
 }
 
 func main() {
