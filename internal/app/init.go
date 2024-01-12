@@ -26,29 +26,13 @@ func (a *App) Run() {
 // addDefaultMetrics creates all metrics in DB
 func addDefaultMetrics(repository repo.MetricsCRUDer) {
 
-	for _, name := range m.SystemMetrics {
-		err := repository.Create(name, m.GaugeType)
-		if err != nil && err != utils.AlreadyExists {
-			log.Fatalf("failed to create metric: %v", err)
+	for metricType, metricArray := range m.MetricsDict {
+		for _, name := range metricArray {
+			err := repository.Create(name, metricType)
+			if err != nil && err != utils.AlreadyExists {
+				log.Fatalf("failed to create metric: %v", err)
+			}
 		}
-
-	}
-	err := repository.Create("PollCount", m.CounterType)
-
-	if err != nil && err != utils.AlreadyExists {
-		log.Fatalf("failed to create metric: %v", err)
-	}
-
-	err = repository.Create("testCounter", m.CounterType)
-
-	if err != nil && err != utils.AlreadyExists {
-		log.Fatalf("failed to create metric: %v", err)
-	}
-
-	err = repository.Create("RandomValue", m.GaugeType)
-
-	if err != nil && err != utils.AlreadyExists {
-		log.Fatalf("failed to create metric: %v", err)
 	}
 
 }
