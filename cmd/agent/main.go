@@ -16,7 +16,7 @@ func getConfig() (int, int, string) {
 		defaultHost = host
 	}
 
-	host := flag.String("host", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
+	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
 
 	defaulreportInterval := 10
 	if reportEnv, exists := os.LookupEnv("REPORT_INTERVAL"); exists {
@@ -25,7 +25,7 @@ func getConfig() (int, int, string) {
 		}
 	}
 
-	reportInterval := flag.Int("freq", defaulreportInterval, "Частота отправки метрик на сервер в секундах. По умолчанию 10")
+	reportInterval := flag.Int("r", defaulreportInterval, "Частота отправки метрик на сервер в секундах. По умолчанию 10")
 
 	defaultPollInterval := 2
 	if pollEnv, exists := os.LookupEnv("POLL_INTERVAL"); exists {
@@ -34,7 +34,7 @@ func getConfig() (int, int, string) {
 		}
 	}
 
-	pollInterval := flag.Int("poll", defaultPollInterval, "Частота опроса метрик в секундах. По умолчанию 2")
+	pollInterval := flag.Int("p", defaultPollInterval, "Частота опроса метрик в секундах. По умолчанию 2")
 
 	flag.Parse()
 	return *reportInterval, *pollInterval, *host
