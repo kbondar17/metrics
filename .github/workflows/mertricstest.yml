@@ -62,15 +62,15 @@ jobs:
           cd cmd/server
           go build -buildvcs=false -o server
 
-      - name: Start server
-        run: |
-          ./cmd/server/server
+      # - name: Start server
+      #   run: |
+      #     ./cmd/server/server
           
 
-      - name: Debug host
-        run: |
-            echo "Проверяем localhost:8080"
-            curl localhost:8080
+      # - name: Debug host
+      #   run: |
+      #       echo "Проверяем localhost:8080"
+      #       curl localhost:8080
 
       - name: "Code increment #1"
         if: |
