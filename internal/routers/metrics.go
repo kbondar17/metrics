@@ -100,8 +100,8 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 		c.JSON(200, body)
 
 	})
-	// r.LoadHTMLGlob("/Users/makbuk/go/src/yandex/metrics/templates/*")
-	r.LoadHTMLGlob("metrics/templates/*")
+
+	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/metrics/all", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
