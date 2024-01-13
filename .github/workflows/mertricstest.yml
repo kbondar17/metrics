@@ -64,8 +64,8 @@ jobs:
 
       - name: Start server
         run: |
-          cd cmd/server
-          ./server 
+          ./cmd/server/server
+          
 
       - name: Debug host
         run: |
