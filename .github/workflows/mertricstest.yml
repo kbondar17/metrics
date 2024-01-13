@@ -62,6 +62,11 @@ jobs:
           cd cmd/server
           go build -buildvcs=false -o server
 
+      - name: Debug host
+        run: |
+            echo "Проверяем localhost:8080"
+            curl localhost:8080
+
       - name: "Code increment #1"
         if: |
           github.ref == 'refs/heads/main' ||
