@@ -17,7 +17,7 @@ func getConfig() (int, int, string) {
 	}
 
 	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
-	http_host := "http://" + *host
+	httpHost := "http://" + *host
 
 	defaulreportInterval := 10
 	if reportEnv, exists := os.LookupEnv("REPORT_INTERVAL"); exists {
@@ -38,7 +38,7 @@ func getConfig() (int, int, string) {
 	pollInterval := flag.Int("p", defaultPollInterval, "Частота опроса метрик в секундах. По умолчанию 2")
 
 	flag.Parse()
-	return *reportInterval, *pollInterval, *&http_host
+	return *reportInterval, *pollInterval, httpHost
 
 }
 
