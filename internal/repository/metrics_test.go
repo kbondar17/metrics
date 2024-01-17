@@ -130,7 +130,7 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 		{
 			name:    "update not existing metric",
 			args:    args{name: "not_existing_metric", metrciType: models.GaugeType, value: 1},
-			wantErr: utils.ErrorNotFound,
+			wantErr: nil,
 		},
 	}
 
@@ -139,6 +139,8 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 
 	mockStorage := setUpMockStorage(ctrl)
 	mockStorage.EXPECT().UpdateMetric(gomock.Eq("existing_metric"), models.GaugeType, 1).Return(nil).AnyTimes()
+	mockStorage.EXPECT().UpdateMetric(gomock.Eq("not_existing_metric"), models.GaugeType, 1).Return(nil).AnyTimes()
+
 	repo := NewMerticsRepo(mockStorage)
 
 	for _, tt := range tests {

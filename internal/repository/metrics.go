@@ -103,7 +103,10 @@ func (repo MerticsRepo) UpdateMetric(name string, metrciType models.MetricType, 
 	}
 
 	if !exists {
-		return utils.ErrorNotFound
+		err = repo.Create(name, metrciType)
+		if err != nil {
+			return err
+		}
 	}
 
 	return repo.Storage.UpdateMetric(name, metrciType, value)
