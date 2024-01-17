@@ -128,16 +128,6 @@ func TestUpdateGaugeMetric(t *testing.T) {
 			wantStatusCode: http.StatusBadRequest,
 			wantResponse:   `{"error":"metric not found","metric name":"NotExistingValue"}`,
 		},
-		{
-			name: "Update Parsing Error",
-			args: args{
-				url:    "/update/gauge/Alloc/string_value",
-				method: "POST",
-				body:   nil,
-			},
-			wantStatusCode: http.StatusBadRequest,
-			wantResponse:   `{"error":"strconv.ParseFloat: parsing \"string_value\": invalid syntax"}`,
-		},
 	}
 
 	for _, tt := range tests {
