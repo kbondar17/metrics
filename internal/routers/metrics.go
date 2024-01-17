@@ -106,7 +106,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 
 	// r.LoadHTMLGlob("metrics/templates/*")
 
-	r.GET("/metrics/all", func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
