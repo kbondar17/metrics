@@ -11,18 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// registerCounterRoutes registers handlers for metrics of type 'Counter'
-func registerCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
-
-	rg.GET("/:name", func(c *gin.Context) {
-		metricName := c.Params.ByName("name")
-		metric, err := repository.GetCountMetricValueByName(metricName)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(200, metric)
-	})
+// registerUpdateCounterRoutes registers handlers for metrics of type 'Counter'
+func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
 		name := c.Params.ByName("name")
@@ -49,20 +39,7 @@ func registerCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, m
 
 }
 
-func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
-
-	rg.GET("/:name", func(c *gin.Context) {
-		metricName := c.Params.ByName("name")
-		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
-		if err == utils.ErrorNotFound {
-			c.JSON(http.StatusBadRequest, gin.H{"metric name": metricName, "error": "metric not found"})
-			return
-		}
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
-		c.JSON(200, metric)
-	})
+func registerUpdateGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
 		name := c.Params.ByName("name")
@@ -86,6 +63,37 @@ func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, met
 
 	rg.POST("/", func(c *gin.Context) {
 		c.Status(http.StatusNotFound)
+	})
+
+}
+
+func registerGetCountRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
+
+	rg.GET("/:name", func(c *gin.Context) {
+		metricName := c.Params.ByName("name")
+		metric, err := repository.GetCountMetricValueByName(metricName)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, metric)
+	})
+
+}
+
+func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType models.MetricType) {
+
+	rg.GET("/:name", func(c *gin.Context) {
+		metricName := c.Params.ByName("name")
+		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
+		if err == utils.ErrorNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName, "error": "metric not found"})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		c.JSON(200, metric)
 	})
 
 }
@@ -115,13 +123,13 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 	})
 
 	// TODO: v1 etc..
-	v1 := r.Group("/update")
+	updateGroup := r.Group("/update")
+	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
+	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)
 
-	gaugeGroup := v1.Group("/gauge")
-	registerGaugeRoutes(gaugeGroup, repository, models.GaugeType)
-
-	counterGroup := v1.Group("/counter")
-	registerCounterRoutes(counterGroup, repository, models.CounterType)
+	getGroup := r.Group("/value")
+	registerGetGaugeRoutes(getGroup.Group("/gauge"), repository, models.GaugeType)
+	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")

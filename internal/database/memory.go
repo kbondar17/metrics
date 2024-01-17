@@ -93,7 +93,7 @@ func (ms *MemStorage) UpdateMetric(name string, metrciType models.MetricType, va
 			return utils.ParseError
 		}
 		ms.mu.Lock()
-		ms.CountData[name] = val
+		ms.CountData[name] += val
 		ms.mu.Unlock()
 		return nil
 	default:

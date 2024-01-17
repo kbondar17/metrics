@@ -54,7 +54,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 		{
 			name: "Get OK",
 			args: args{
-				url:    "/update/gauge/RandomValue",
+				url:    "/value/gauge/RandomValue",
 				method: "GET",
 				body:   nil,
 			},
@@ -64,11 +64,11 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 		{
 			name: "Get Not Found",
 			args: args{
-				url:    "/update/gauge/NotExistingValue",
+				url:    "/value/gauge/NotExistingValue",
 				method: "GET",
 				body:   nil,
 			},
-			wantStatusCode: http.StatusBadRequest,
+			wantStatusCode: http.StatusNotFound,
 			wantResponse:   `{"error":"metric not found","metric name":"NotExistingValue"}`,
 		},
 	}
