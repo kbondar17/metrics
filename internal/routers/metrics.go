@@ -56,6 +56,7 @@ func registerGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, met
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
 		if err == utils.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": metricName, "error": "metric not found"})
+			return
 		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
