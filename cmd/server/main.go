@@ -2,23 +2,31 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"metrics/internal/app"
 	"os"
 )
 
-func getConfig() string {
-	defaultHost := "localhost:8080"
+type ServerOptions struct {
+	EndpointAddr string `env:"ADDRESS"`
+}
 
-	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
+func (o *ServerOptions) ParseArgs() {
+	flag.StringVar(&o.EndpointAddr, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
+}
 
-	if hostEnv, exists := os.LookupEnv("ADDRESS"); exists {
-		host = &hostEnv
+func (o *ServerOptions) ParseEnv() {
+	host := os.Getenv("ADDRESS")
+	if host != "" {
+		o.EndpointAddr = os.Getenv("ADDRESS")
 	}
+}
 
-	fmt.Println("Адрес HTTP-сервера: ", *host)
-	return *host
+func getConfig() string {
+	opt := ServerOptions{}
+	opt.ParseArgs()
+	opt.ParseEnv()
+	return opt.EndpointAddr
 }
 
 func main() {
