@@ -24,16 +24,22 @@ import (
 // 	Host = ennvHost
 // }
 
+type ServerOptions struct {
+	EndpointAddr string
+}
+
 func getConfig(s *string) {
 	flag.StringVar(s, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
 }
 
 func main() {
-	var host string
-	getConfig(&host)
 
-	appConfig := app.NewAppConfig(&host)
+	opt := ServerOptions{}
+
+	getConfig(&opt.EndpointAddr)
+
+	appConfig := app.NewAppConfig(&opt.EndpointAddr)
 	app := app.NewApp(appConfig)
 
 	app.Run()
