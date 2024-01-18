@@ -20,25 +20,20 @@ import (
 // 		o.EndpointAddr = os.Getenv("ADDRESS")
 // 	}
 // }
+// if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
+// 	Host = ennvHost
+// }
 
-// попробуйте передать строку через указатель.
-func getConfig() *string {
-	var Host string
-
-	flag.StringVar(&Host, "a", "localhost:8080", "endpoint address")
+func getConfig(s *string) {
+	flag.StringVar(s, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
-
-	// if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
-	// 	Host = ennvHost
-	// }
-
-	return &Host
 }
 
 func main() {
+	var host string
+	getConfig(&host)
 
-	host := getConfig()
-	appConfig := app.NewAppConfig(host)
+	appConfig := app.NewAppConfig(&host)
 	app := app.NewApp(appConfig)
 
 	app.Run()
