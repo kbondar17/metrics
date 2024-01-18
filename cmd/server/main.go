@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"metrics/internal/app"
-	"os"
 )
 
 // type ServerOptions struct {
@@ -22,15 +21,15 @@ import (
 // 	}
 // }
 
-var Host string
-
 func getConfig() string {
+	var Host string
+
 	flag.StringVar(&Host, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
 
-	if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
-		Host = ennvHost
-	}
+	// if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
+	// 	Host = ennvHost
+	// }
 	return Host
 }
 
