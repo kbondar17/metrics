@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"metrics/internal/app"
+	"os"
 )
 
 // type ServerOptions struct {
@@ -21,16 +22,18 @@ import (
 // 	}
 // }
 
-func getConfig() string {
+// попробуйте передать строку через указатель.
+func getConfig() *string {
 	var Host string
 
 	flag.StringVar(&Host, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
 
-	// if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
-	// 	Host = ennvHost
-	// }
-	return Host
+	if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
+		Host = ennvHost
+	}
+
+	return &Host
 }
 
 func main() {
