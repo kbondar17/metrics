@@ -23,16 +23,16 @@ import (
 
 // попробуйте передать строку через указатель.
 func getConfig() *string {
-	var Host *string
+	var Host string
 
-	flag.StringVar(Host, "a", "localhost:8080", "endpoint address")
+	flag.StringVar(&Host, "a", "localhost:8080", "endpoint address")
 	flag.Parse()
 
 	// if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
-	// 	Host = &ennvHost
+	// 	Host = ennvHost
 	// }
 
-	return Host
+	return &Host
 }
 
 func main() {
