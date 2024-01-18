@@ -17,6 +17,8 @@ func getConfig() (int, int, string) {
 	}
 
 	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
+	flag.Parse()
+
 	httpHost := "http://" + *host
 
 	defaulreportInterval := 10
@@ -46,7 +48,7 @@ func main() {
 
 	reportInterval, pollInterval, serverAddress := getConfig()
 
-	fmt.Println(reportInterval, pollInterval, serverAddress)
+	fmt.Println("Config::", reportInterval, pollInterval, serverAddress)
 
 	logger := utils.NewLogger("./logs/agent_logs.log", "Agent: ")
 
