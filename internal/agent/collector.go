@@ -10,15 +10,12 @@ import (
 	"time"
 )
 
-var PollCount int
-
 type Collector struct {
 	config AgentConfig
-	logger *log.Logger
 }
 
-func NewCollector(logger *log.Logger, config AgentConfig) Collector {
-	return Collector{logger: logger, config: config}
+func NewCollector(config AgentConfig) Collector {
+	return Collector{config: config}
 }
 
 func parseMetric(metricName string, value reflect.Value) string {
@@ -33,14 +30,15 @@ func parseMetric(metricName string, value reflect.Value) string {
 }
 
 // CollectMetrics collects metrics from runtime and returns them in MetricSendContainer
-func (coll *Collector) CollectMetrics() m.MetricSendContainer {
+func (coll *Collector) _CollectMetrics() m.MetricSendContainer {
 	var mem runtime.MemStats
+	var pollCount int
 
 	container := m.NewMetricSendContainer()
 	start := time.Now()
 
 	for {
-		PollCount++
+		pollCount++
 
 		for metric := range container.GaugeMetrics {
 			runtime.ReadMemStats(&mem)
@@ -51,14 +49,33 @@ func (coll *Collector) CollectMetrics() m.MetricSendContainer {
 
 		container.UserMetrcs["RandomValue"] = fmt.Sprintf("%f", rand.Float64())
 
-		if int(time.Since(start).Seconds()) >= coll.config.ReportInterval {
-			coll.logger.Println("Time to send metrics. Collected data: ", container)
+		if int(time.Since(start).Seconds()) >= coll.config.reportInterval {
+			log.Println("Time to send metrics. Collected data: ", container)
 			break
 		}
-		time.Sleep(time.Duration(coll.config.PollInterval) * time.Second)
+		time.Sleep(time.Duration(coll.config.pollInterval) * time.Second)
 
 	}
 
-	container.CounterMetrics["PollCount"] = fmt.Sprintf("%d", PollCount)
+	container.CounterMetrics["PollCount"] = fmt.Sprintf("%d", pollCount)
 	return container
+}
+
+func (coll *Collector) CollectMetrics(pollCount *int, container *m.MetricSendContainer) {
+	var mem runtime.MemStats
+
+	for metric := range container.GaugeMetrics {
+		runtime.ReadMemStats(&mem)
+		v := reflect.ValueOf(mem)
+		metricValueRaw := v.FieldByName(metric)
+		container.GaugeMetrics[metric] = parseMetric(metric, metricValueRaw)
+	}
+
+	container.UserMetrcs["RandomValue"] = fmt.Sprintf("%f", rand.Float64())
+
+	*pollCount++
+
+	container.CounterMetrics["PollCount"] = fmt.Sprintf("%d", pollCount)
+	log.Println("Collected data: ", container)
+
 }

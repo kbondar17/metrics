@@ -1,24 +1,25 @@
 package repository
 
 import (
-	db "metrics/internal/database"
+	"errors"
+	"metrics/internal/app_errors"
+
 	models "metrics/internal/models"
-	"metrics/internal/utils"
 	"testing"
 
 	"go.uber.org/mock/gomock"
 )
 
 // Общие моки для всех тестов
-func setUpMockStorage(ctrl *gomock.Controller) *db.MockStorager {
-	mockStorage := db.NewMockStorager(ctrl)
+func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
+	mockStorage := NewMockStorager(ctrl)
 	mockStorage.EXPECT().CheckIfMetricExists(gomock.Eq("existing_metric"), models.GaugeType).Return(true, nil).AnyTimes()
 	mockStorage.EXPECT().CheckIfMetricExists(gomock.Eq("not_existing_metric"), models.GaugeType).Return(false, nil).AnyTimes()
 
 	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("existing_metric"), models.GaugeType).Return(2.2, nil).AnyTimes()
-	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("not_existing_metric"), models.GaugeType).Return(0.0, utils.ErrorNotFound).AnyTimes()
+	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("not_existing_metric"), models.GaugeType).Return(0.0, app_errors.ErrorNotFound).AnyTimes()
 
-	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(utils.AlreadyExists).AnyTimes()
+	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(app_errors.AlreadyExists).AnyTimes()
 	mockStorage.EXPECT().Create(gomock.Eq("not_existing_metric"), models.GaugeType).Return(nil).AnyTimes()
 
 	return mockStorage
@@ -55,7 +56,7 @@ func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
 			name:    "not existing metric",
 			args:    args{name: "not_existing_metric", mType: models.GaugeType},
 			want:    0,
-			wantErr: utils.ErrorNotFound,
+			wantErr: app_errors.ErrorNotFound,
 		},
 	}
 	for _, tt := range tests {
@@ -92,7 +93,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 		{
 			name:    "create existing metric",
 			args:    args{metricName: "existing_metric", metricType: models.GaugeType},
-			wantErr: utils.AlreadyExists,
+			wantErr: app_errors.AlreadyExists,
 		},
 		{
 			name:    "create not existing metric",
@@ -102,8 +103,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			if err := repo.Create(tt.args.metricName, tt.args.metricType); err != nil && err != tt.wantErr {
+			if err := repo.Create(tt.args.metricName, tt.args.metricType); err != nil && !errors.Is(err, tt.wantErr) {
 				t.Errorf("MerticsRepo.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

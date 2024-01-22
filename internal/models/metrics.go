@@ -8,27 +8,27 @@ const (
 )
 
 type GaugeMetric struct {
-	Name  string  `json:"name" validate:"required"`
-	Type  string  `json:"type" validate:"required"`
-	Value float64 `json:"value" validate:"required"`
+	Name  string  `json:"name"`
+	Type  string  `json:"type"`
+	Value float64 `json:"value"`
 }
 
 type CounterMetric struct {
-	Name  string `json:"name" validate:"required"`
-	Type  string `json:"type" validate:"required"`
-	Value int64  `json:"value" validate:"required"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Value int64  `json:"value"`
 }
 
 type Metric struct {
-	Name  string     `json:"name" validate:"required"`
-	Type  MetricType `json:"type" validate:"required"`
-	Value float64    `json:"value" validate:"required"`
+	Name  string     `json:"name"`
+	Type  MetricType `json:"type"`
+	Value float64    `json:"value"`
 }
 
 type MetricResponseModel struct {
-	Name  string     `json:"name" validate:"required"`
-	Type  MetricType `json:"type" validate:"required"`
-	Value string     `json:"value" validate:"required"`
+	Name  string     `json:"name"`
+	Type  MetricType `json:"type"`
+	Value string     `json:"value"`
 }
 
 type MetricSendContainer struct {

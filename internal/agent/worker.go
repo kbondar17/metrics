@@ -1,7 +1,8 @@
 package agent
 
 import (
-	"log"
+	m "metrics/internal/models"
+	"time"
 )
 
 type Worker struct {
@@ -9,10 +10,10 @@ type Worker struct {
 	collector Collector
 }
 
-func NewWorker(config AgentConfig, logger *log.Logger) Worker {
-	client := NewUserClient(config, logger)
+func NewWorker(config AgentConfig) Worker {
+	client := NewUserClient(config)
 
-	collector := NewCollector(logger, config)
+	collector := NewCollector(config)
 
 	return Worker{
 		client:    client,
@@ -20,10 +21,24 @@ func NewWorker(config AgentConfig, logger *log.Logger) Worker {
 	}
 }
 
-func (w Worker) Start() {
+func (w Worker) Run() {
+
+	var pollCount int
+	container := m.NewMetricSendContainer()
+
+	reportTicker := time.NewTicker(time.Duration(w.collector.config.reportInterval) * time.Second)
+	defer reportTicker.Stop()
+
+	pollTicker := time.NewTicker(time.Duration(w.collector.config.pollInterval) * time.Second)
+	defer pollTicker.Stop()
+
 	for {
-		data := w.collector.CollectMetrics()
-		w.client.SendMetricContainer(data)
+		select {
+		case <-reportTicker.C:
+			w.client.SendMetricContainer(container)
+		case <-pollTicker.C:
+			w.collector.CollectMetrics(&pollCount, &container)
+		}
 	}
 
 }

@@ -1,21 +1,19 @@
 package database
 
 import (
-	"context"
 	"log"
+	"metrics/internal/app_errors"
 	"metrics/internal/models"
-	"metrics/internal/utils"
 	"sync"
 )
 
 type MemStorage struct {
-	ctx       context.Context
 	GaugeData map[string]float64
 	CountData map[string]int
 	mu        sync.RWMutex
 }
 
-func NewMemStorage(ctx context.Context) *MemStorage {
+func NewMemStorage() *MemStorage {
 	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int)}
 }
 
@@ -32,7 +30,7 @@ func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) 
 		ms.mu.RUnlock()
 		return ok, nil
 	default:
-		return false, utils.ParseError
+		return false, app_errors.ParseError
 	}
 }
 func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error) {
@@ -42,11 +40,11 @@ func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.Metric
 		val, ok := ms.GaugeData[name]
 		ms.mu.RUnlock()
 		if !ok {
-			return 0, utils.ParseError
+			return 0, app_errors.ParseError
 		}
 		return val, nil
 	default:
-		return 0, utils.ParseError
+		return 0, app_errors.ParseError
 	}
 }
 
@@ -55,7 +53,7 @@ func (ms *MemStorage) GetCountMetricValueByName(name string) (int, error) {
 	val, ok := ms.CountData[name]
 	ms.mu.RUnlock()
 	if !ok {
-		return 0, utils.ParseError
+		return 0, app_errors.ParseError
 	}
 	return val, nil
 }
@@ -69,19 +67,19 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 		ms.CountData[metricName] = 0
 		return nil
 	default:
-		log.Fatal("unknown metric type", metricType, metricName)
-		return utils.ParseError
+		log.Println("unknown metric type", metricType, metricName)
+		return app_errors.ParseError
 	}
 }
 
-func (ms *MemStorage) UpdateMetric(name string, metrciType models.MetricType, value interface{}) error {
-	log.Println("updating metric", name, metrciType, value)
+func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}) error {
+	log.Println("updating metric", name, metricType, value)
 
-	switch metrciType {
+	switch metricType {
 	case models.GaugeType:
 		val, ok := value.(float64)
 		if !ok {
-			return utils.ParseError
+			return app_errors.ParseError
 		}
 		ms.mu.Lock()
 		ms.GaugeData[name] = val
@@ -90,14 +88,14 @@ func (ms *MemStorage) UpdateMetric(name string, metrciType models.MetricType, va
 	case models.CounterType:
 		val, ok := value.(int)
 		if !ok {
-			return utils.ParseError
+			return app_errors.ParseError
 		}
 		ms.mu.Lock()
 		ms.CountData[name] += val
 		ms.mu.Unlock()
 		return nil
 	default:
-		log.Fatal("unknown metric type", metrciType, name)
-		return utils.ParseError
+		log.Println("Error: unknown metric type", metricType, name)
+		return app_errors.ParseError
 	}
 }

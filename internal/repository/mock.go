@@ -110,3 +110,99 @@ func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value an
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value)
 }
+
+// MockStorager is a mock of Storager interface.
+type MockStorager struct {
+	ctrl     *gomock.Controller
+	recorder *MockStoragerMockRecorder
+}
+
+// MockStoragerMockRecorder is the mock recorder for MockStorager.
+type MockStoragerMockRecorder struct {
+	mock *MockStorager
+}
+
+// NewMockStorager creates a new mock instance.
+func NewMockStorager(ctrl *gomock.Controller) *MockStorager {
+	mock := &MockStorager{ctrl: ctrl}
+	mock.recorder = &MockStoragerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStorager) EXPECT() *MockStoragerMockRecorder {
+	return m.recorder
+}
+
+// CheckIfMetricExists mocks base method.
+func (m *MockStorager) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckIfMetricExists", name, mType)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckIfMetricExists indicates an expected call of CheckIfMetricExists.
+func (mr *MockStoragerMockRecorder) CheckIfMetricExists(name, mType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckIfMetricExists", reflect.TypeOf((*MockStorager)(nil).CheckIfMetricExists), name, mType)
+}
+
+// Create mocks base method.
+func (m *MockStorager) Create(metricName string, metricType models.MetricType) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", metricName, metricType)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockStoragerMockRecorder) Create(metricName, metricType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockStorager)(nil).Create), metricName, metricType)
+}
+
+// GetCountMetricValueByName mocks base method.
+func (m *MockStorager) GetCountMetricValueByName(name string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCountMetricValueByName", name)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCountMetricValueByName indicates an expected call of GetCountMetricValueByName.
+func (mr *MockStoragerMockRecorder) GetCountMetricValueByName(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCountMetricValueByName", reflect.TypeOf((*MockStorager)(nil).GetCountMetricValueByName), name)
+}
+
+// GetGaugeMetricValueByName mocks base method.
+func (m *MockStorager) GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGaugeMetricValueByName", name, mType)
+	ret0, _ := ret[0].(float64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGaugeMetricValueByName indicates an expected call of GetGaugeMetricValueByName.
+func (mr *MockStoragerMockRecorder) GetGaugeMetricValueByName(name, mType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGaugeMetricValueByName", reflect.TypeOf((*MockStorager)(nil).GetGaugeMetricValueByName), name, mType)
+}
+
+// UpdateMetric mocks base method.
+func (m *MockStorager) UpdateMetric(name string, metrciType models.MetricType, value any) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMetric indicates an expected call of UpdateMetric.
+func (mr *MockStoragerMockRecorder) UpdateMetric(name, metrciType, value any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMetric), name, metrciType, value)
+}

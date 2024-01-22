@@ -4,9 +4,8 @@ package repository
 import (
 	"fmt"
 	"log"
-	db "metrics/internal/database"
+	"metrics/internal/app_errors"
 	models "metrics/internal/models"
-	"metrics/internal/utils"
 )
 
 type MetricsCRUDer interface {
@@ -17,11 +16,19 @@ type MetricsCRUDer interface {
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
 }
 
-type MerticsRepo struct {
-	Storage db.Storager
+type Storager interface {
+	CheckIfMetricExists(name string, mType models.MetricType) (bool, error)
+	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
+	GetCountMetricValueByName(name string) (int, error)
+	Create(metricName string, metricType models.MetricType) error
+	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
 }
 
-func NewMerticsRepo(storage db.Storager) MetricsCRUDer {
+type MerticsRepo struct {
+	Storage Storager
+}
+
+func NewMerticsRepo(storage Storager) MetricsCRUDer {
 	return MerticsRepo{Storage: storage}
 }
 
@@ -55,7 +62,7 @@ func (repo MerticsRepo) GetCountMetricValueByName(name string) (int, error) {
 	exists, err := repo.Storage.CheckIfMetricExists(name, models.CounterType)
 
 	if !exists {
-		return 0, utils.ErrorNotFound
+		return 0, app_errors.ErrorNotFound
 	}
 
 	if err != nil {
@@ -69,7 +76,7 @@ func (repo MerticsRepo) GetGaugeMetricValueByName(name string, mType models.Metr
 	exists, err := repo.Storage.CheckIfMetricExists(name, mType)
 
 	if !exists {
-		return 0, utils.ErrorNotFound
+		return 0, app_errors.ErrorNotFound
 	}
 
 	if err != nil {
@@ -88,7 +95,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 	}
 	if exists {
 		log.Printf("metric already exists: %v", err)
-		return utils.AlreadyExists
+		return app_errors.AlreadyExists
 	}
 	log.Println("Создали метрику типа: ", metricType, " с именем: ", metricName)
 	return repo.Storage.Create(metricName, metricType)

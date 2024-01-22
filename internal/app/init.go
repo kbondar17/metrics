@@ -1,14 +1,14 @@
 package app
 
 import (
-	"context"
+	"errors"
 	"log"
 
+	"metrics/internal/app_errors"
 	db "metrics/internal/database"
 	m "metrics/internal/models"
 	repo "metrics/internal/repository"
 	routes "metrics/internal/routers"
-	"metrics/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +29,7 @@ func addDefaultMetrics(repository repo.MetricsCRUDer) {
 	for metricType, metricArray := range m.MetricsDict {
 		for _, name := range metricArray {
 			err := repository.Create(name, metricType)
-			if err != nil && err != utils.AlreadyExists {
+			if err != nil && !errors.Is(err, app_errors.AlreadyExists) {
 				log.Fatalf("failed to create metric: %v", err)
 			}
 		}
@@ -38,9 +38,8 @@ func addDefaultMetrics(repository repo.MetricsCRUDer) {
 }
 
 func NewApp(conf *AppConfig) *App {
-	ctx := context.Background()
 
-	storage := db.NewStorage(ctx)
+	storage := db.NewStorage()
 	repository := repo.NewMerticsRepo(storage)
 	addDefaultMetrics(repository)
 	return &App{Config: conf, Router: routes.RegisterMerticsRoutes(repository)}

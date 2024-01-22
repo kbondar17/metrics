@@ -2,9 +2,9 @@ package routers
 
 import (
 	"log"
+	"metrics/internal/app_errors"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
-	"metrics/internal/utils"
 	"net/http"
 	"strconv"
 
@@ -21,7 +21,7 @@ func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRU
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		err = repository.UpdateMetric(name, models.CounterType, value)
-		if err == utils.ErrorNotFound {
+		if err == app_errors.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
 		}
@@ -51,7 +51,7 @@ func registerUpdateGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDe
 		}
 
 		err = repository.UpdateMetric(name, models.GaugeType, value)
-		if err == utils.ErrorNotFound {
+		if err == app_errors.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
 		}
 		if err != nil {
@@ -86,7 +86,7 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 	rg.GET("/:name", func(c *gin.Context) {
 		metricName := c.Params.ByName("name")
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
-		if err == utils.ErrorNotFound {
+		if err == app_errors.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName, "error": "metric not found"})
 			return
 		}
@@ -112,8 +112,6 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 
 	r.LoadHTMLFiles("templates/metrics.html")
 
-	// r.LoadHTMLGlob("metrics/templates/*")
-
 	r.GET("/", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
@@ -122,7 +120,6 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 
 	})
 
-	// TODO: v1 etc..
 	updateGroup := r.Group("/update")
 	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
 	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)

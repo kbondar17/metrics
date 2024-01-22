@@ -2,22 +2,21 @@ package routers
 
 import (
 	"io"
-	"metrics/internal/database"
+	"metrics/internal/app_errors"
 	"metrics/internal/models"
 	"metrics/internal/repository"
-	"metrics/internal/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"gopkg.in/go-playground/assert.v1"
 )
 
 func TestBase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockStorage := database.NewMockStorager(ctrl)
+	mockStorage := repository.NewMockStorager(ctrl)
 	mockRepo := repository.NewMerticsRepo(mockStorage)
 	router := RegisterMerticsRoutes(mockRepo)
 
@@ -41,7 +40,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
-	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, utils.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, app_errors.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo)
 
@@ -98,7 +97,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
 	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1).Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(utils.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(app_errors.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo)
 
