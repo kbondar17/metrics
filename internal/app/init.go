@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"metrics/internal/app_errors"
 	db "metrics/internal/database"
+	er "metrics/internal/errors"
 	m "metrics/internal/models"
 	repo "metrics/internal/repository"
 	routes "metrics/internal/routers"
@@ -29,7 +29,7 @@ func addDefaultMetrics(repository repo.MetricsCRUDer) {
 	for metricType, metricArray := range m.MetricsDict {
 		for _, name := range metricArray {
 			err := repository.Create(name, metricType)
-			if err != nil && !errors.Is(err, app_errors.AlreadyExists) {
+			if err != nil && !errors.Is(err, er.AlreadyExists) {
 				log.Fatalf("failed to create metric: %v", err)
 			}
 		}

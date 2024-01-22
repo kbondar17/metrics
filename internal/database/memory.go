@@ -2,7 +2,7 @@ package database
 
 import (
 	"log"
-	"metrics/internal/app_errors"
+	er "metrics/internal/errors"
 	"metrics/internal/models"
 	"sync"
 )
@@ -30,7 +30,7 @@ func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) 
 		ms.mu.RUnlock()
 		return ok, nil
 	default:
-		return false, app_errors.ParseError
+		return false, er.ParseError
 	}
 }
 func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error) {
@@ -40,11 +40,11 @@ func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.Metric
 		val, ok := ms.GaugeData[name]
 		ms.mu.RUnlock()
 		if !ok {
-			return 0, app_errors.ParseError
+			return 0, er.ParseError
 		}
 		return val, nil
 	default:
-		return 0, app_errors.ParseError
+		return 0, er.ParseError
 	}
 }
 
@@ -53,7 +53,7 @@ func (ms *MemStorage) GetCountMetricValueByName(name string) (int, error) {
 	val, ok := ms.CountData[name]
 	ms.mu.RUnlock()
 	if !ok {
-		return 0, app_errors.ParseError
+		return 0, er.ParseError
 	}
 	return val, nil
 }
@@ -68,7 +68,7 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 		return nil
 	default:
 		log.Println("unknown metric type", metricType, metricName)
-		return app_errors.ParseError
+		return er.ParseError
 	}
 }
 
@@ -79,7 +79,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 	case models.GaugeType:
 		val, ok := value.(float64)
 		if !ok {
-			return app_errors.ParseError
+			return er.ParseError
 		}
 		ms.mu.Lock()
 		ms.GaugeData[name] = val
@@ -88,7 +88,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 	case models.CounterType:
 		val, ok := value.(int)
 		if !ok {
-			return app_errors.ParseError
+			return er.ParseError
 		}
 		ms.mu.Lock()
 		ms.CountData[name] += val
@@ -96,6 +96,6 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		return nil
 	default:
 		log.Println("Error: unknown metric type", metricType, name)
-		return app_errors.ParseError
+		return er.ParseError
 	}
 }

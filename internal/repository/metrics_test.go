@@ -2,7 +2,7 @@ package repository
 
 import (
 	"errors"
-	"metrics/internal/app_errors"
+	er "metrics/internal/errors"
 
 	models "metrics/internal/models"
 	"testing"
@@ -17,9 +17,9 @@ func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
 	mockStorage.EXPECT().CheckIfMetricExists(gomock.Eq("not_existing_metric"), models.GaugeType).Return(false, nil).AnyTimes()
 
 	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("existing_metric"), models.GaugeType).Return(2.2, nil).AnyTimes()
-	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("not_existing_metric"), models.GaugeType).Return(0.0, app_errors.ErrorNotFound).AnyTimes()
+	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("not_existing_metric"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
 
-	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(app_errors.AlreadyExists).AnyTimes()
+	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(er.AlreadyExists).AnyTimes()
 	mockStorage.EXPECT().Create(gomock.Eq("not_existing_metric"), models.GaugeType).Return(nil).AnyTimes()
 
 	return mockStorage
@@ -56,7 +56,7 @@ func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
 			name:    "not existing metric",
 			args:    args{name: "not_existing_metric", mType: models.GaugeType},
 			want:    0,
-			wantErr: app_errors.ErrorNotFound,
+			wantErr: er.ErrorNotFound,
 		},
 	}
 	for _, tt := range tests {
@@ -93,7 +93,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 		{
 			name:    "create existing metric",
 			args:    args{metricName: "existing_metric", metricType: models.GaugeType},
-			wantErr: app_errors.AlreadyExists,
+			wantErr: er.AlreadyExists,
 		},
 		{
 			name:    "create not existing metric",

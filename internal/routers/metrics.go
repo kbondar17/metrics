@@ -2,7 +2,8 @@ package routers
 
 import (
 	"log"
-	"metrics/internal/app_errors"
+	er "metrics/internal/errors"
+
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
 	"net/http"
@@ -21,7 +22,7 @@ func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRU
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		err = repository.UpdateMetric(name, models.CounterType, value)
-		if err == app_errors.ErrorNotFound {
+		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
 		}
@@ -51,7 +52,7 @@ func registerUpdateGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDe
 		}
 
 		err = repository.UpdateMetric(name, models.GaugeType, value)
-		if err == app_errors.ErrorNotFound {
+		if err == er.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
 		}
 		if err != nil {
@@ -86,7 +87,7 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 	rg.GET("/:name", func(c *gin.Context) {
 		metricName := c.Params.ByName("name")
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
-		if err == app_errors.ErrorNotFound {
+		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName, "error": "metric not found"})
 			return
 		}

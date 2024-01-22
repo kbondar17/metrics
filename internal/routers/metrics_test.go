@@ -2,7 +2,7 @@ package routers
 
 import (
 	"io"
-	"metrics/internal/app_errors"
+	er "metrics/internal/errors"
 	"metrics/internal/models"
 	"metrics/internal/repository"
 	"net/http"
@@ -40,7 +40,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
-	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, app_errors.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo)
 
@@ -97,7 +97,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
 	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1).Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(app_errors.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(er.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo)
 

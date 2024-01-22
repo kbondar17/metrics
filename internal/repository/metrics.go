@@ -4,7 +4,8 @@ package repository
 import (
 	"fmt"
 	"log"
-	"metrics/internal/app_errors"
+	er "metrics/internal/errors"
+
 	models "metrics/internal/models"
 )
 
@@ -62,7 +63,7 @@ func (repo MerticsRepo) GetCountMetricValueByName(name string) (int, error) {
 	exists, err := repo.Storage.CheckIfMetricExists(name, models.CounterType)
 
 	if !exists {
-		return 0, app_errors.ErrorNotFound
+		return 0, er.ErrorNotFound
 	}
 
 	if err != nil {
@@ -76,7 +77,7 @@ func (repo MerticsRepo) GetGaugeMetricValueByName(name string, mType models.Metr
 	exists, err := repo.Storage.CheckIfMetricExists(name, mType)
 
 	if !exists {
-		return 0, app_errors.ErrorNotFound
+		return 0, er.ErrorNotFound
 	}
 
 	if err != nil {
@@ -95,7 +96,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 	}
 	if exists {
 		log.Printf("metric already exists: %v", err)
-		return app_errors.AlreadyExists
+		return er.AlreadyExists
 	}
 	log.Println("Создали метрику типа: ", metricType, " с именем: ", metricName)
 	return repo.Storage.Create(metricName, metricType)
