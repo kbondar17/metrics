@@ -96,7 +96,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 	}
 	if exists {
 		log.Printf("metric already exists: %v", err)
-		return er.AlreadyExists
+		return er.ErrAlreadyExists
 	}
 	log.Println("Создали метрику типа: ", metricType, " с именем: ", metricName)
 	return repo.Storage.Create(metricName, metricType)

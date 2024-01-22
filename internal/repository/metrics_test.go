@@ -19,7 +19,7 @@ func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
 	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("existing_metric"), models.GaugeType).Return(2.2, nil).AnyTimes()
 	mockStorage.EXPECT().GetGaugeMetricValueByName(gomock.Eq("not_existing_metric"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
 
-	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(er.AlreadyExists).AnyTimes()
+	mockStorage.EXPECT().Create(gomock.Eq("existing_metric"), models.GaugeType).Return(er.ErrAlreadyExists).AnyTimes()
 	mockStorage.EXPECT().Create(gomock.Eq("not_existing_metric"), models.GaugeType).Return(nil).AnyTimes()
 
 	return mockStorage
@@ -93,7 +93,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 		{
 			name:    "create existing metric",
 			args:    args{metricName: "existing_metric", metricType: models.GaugeType},
-			wantErr: er.AlreadyExists,
+			wantErr: er.ErrAlreadyExists,
 		},
 		{
 			name:    "create not existing metric",
