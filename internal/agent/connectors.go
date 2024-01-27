@@ -11,7 +11,7 @@ import (
 )
 
 type UserClient struct {
-	baseURL    url.URL
+	baseURL    string
 	httpClient *gorequest.SuperAgent
 }
 
@@ -39,7 +39,7 @@ func NewUserClient(config AgentConfig) UserClient {
 // SendSingleLog sends single log to server
 func (uc UserClient) SendSingleLog(metricName string, metricType m.MetricType, strValue string) {
 
-	url, err := url.JoinPath(uc.baseURL.String(), "/update/", string(metricType), metricName, strValue)
+	url, err := url.JoinPath(uc.baseURL, "/update/", string(metricType), metricName, strValue)
 
 	log.Println("Sending data to:: ", url)
 

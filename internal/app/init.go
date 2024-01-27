@@ -19,8 +19,8 @@ type App struct {
 }
 
 func (a *App) Run() {
-	log.Println("Starting server on ", a.Config.Server.Address)
-	a.Router.Run(a.Config.Server.Address)
+	log.Println("Starting server on ", a.Config.host)
+	a.Router.Run(a.Config.host)
 }
 
 // addDefaultMetrics creates all metrics in DB

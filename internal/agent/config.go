@@ -11,10 +11,10 @@ import (
 type AgentConfig struct {
 	pollInterval   int
 	reportInterval int
-	serverAddress  url.URL
+	serverAddress  string
 }
 
-func NewAgentConfig(pollInterval int, reportInterval int, serverAddress string) AgentConfig {
+func newAgentConfig(pollInterval int, reportInterval int, serverAddress string) AgentConfig {
 	u, err := url.Parse(serverAddress)
 	if err != nil {
 		panic(err)
@@ -23,14 +23,14 @@ func NewAgentConfig(pollInterval int, reportInterval int, serverAddress string) 
 	return AgentConfig{
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
-		serverAddress:  *u,
+		serverAddress:  u.String(),
 	}
 }
 
 func NewAgentConfigFromEnv() AgentConfig {
 	reportInterval, pollInterval, serverAddress := parseConfig()
 	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n", reportInterval, pollInterval, serverAddress)
-	return NewAgentConfig(pollInterval, reportInterval, serverAddress)
+	return newAgentConfig(pollInterval, reportInterval, serverAddress)
 }
 
 func parseConfig() (int, int, string) {

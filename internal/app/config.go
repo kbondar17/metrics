@@ -5,20 +5,13 @@ import (
 	"os"
 )
 
-type ServerConfig struct {
-	Address string
-}
-
 type AppConfig struct {
-	Server ServerConfig
+	host string
 }
 
 func NewAppConfig(host string) *AppConfig {
-	return &AppConfig{
-		Server: ServerConfig{
-			Address: host,
-		},
-	}
+	return &AppConfig{host: host}
+
 }
 
 func getConfig() string {
