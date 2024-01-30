@@ -182,6 +182,8 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	getGroup := r.Group("/value")
 	RegisterGetValueRoute(getGroup, repository)
+	registerGetGaugeRoutes(getGroup.Group("/gauge"), repository, models.GaugeType)
+	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
