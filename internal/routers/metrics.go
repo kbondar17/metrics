@@ -113,6 +113,7 @@ func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
+			c.Header("Content-Type", "application/json")
 			c.JSON(200, value)
 		} else if metric.MType == string(models.CounterType) {
 			value, err := repository.GetCountMetricValueByName(metric.ID)
@@ -120,6 +121,7 @@ func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 
 			}
+			c.Header("Content-Type", "application/json")
 			c.JSON(200, value)
 
 		}
@@ -175,6 +177,8 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	updateGroup := r.Group("/update")
 	RegisterUpdateRoute(updateGroup, repository)
+	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
+	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)
 
 	getGroup := r.Group("/value")
 	RegisterGetValueRoute(getGroup, repository)
