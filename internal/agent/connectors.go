@@ -2,7 +2,6 @@ package agent
 
 import (
 	"log"
-	"metrics/internal/models"
 	m "metrics/internal/models"
 	"net/http"
 	"net/url"
@@ -54,7 +53,7 @@ func NewUserClient(config AgentConfig) UserClient {
 
 // }
 
-func (uc UserClient) SendSingleLog(body models.UpdateMetricsModel) {
+func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
 
 	url, err := url.JoinPath(uc.baseURL, "/update")
 
