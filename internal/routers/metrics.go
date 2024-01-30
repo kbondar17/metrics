@@ -114,15 +114,16 @@ func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
 			c.Header("Content-Type", "application/json")
-			c.JSON(200, value)
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
 		} else if metric.MType == string(models.CounterType) {
 			value, err := repository.GetCountMetricValueByName(metric.ID)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 
 			}
+			value64 := int64(value)
 			c.Header("Content-Type", "application/json")
-			c.JSON(200, value)
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: &value64})
 
 		}
 	})
