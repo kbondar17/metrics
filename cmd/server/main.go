@@ -7,6 +7,5 @@ import (
 func main() {
 	appConfig := app.NewAppConfigFromEnv()
 	app := app.NewApp(appConfig)
-
 	app.Run()
 }

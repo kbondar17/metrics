@@ -1,15 +1,19 @@
 package routers
 
 import (
+	"fmt"
 	"log"
 	er "metrics/internal/errors"
 
+	logger "metrics/internal/logger"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
+
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // registerUpdateCounterRoutes registers handlers for metrics of type 'Counter'
@@ -99,8 +103,55 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 
 }
 
-func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
-	r := gin.Default()
+func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
+	rg.POST("/", func(c *gin.Context) {
+		var metric models.UpdateMetricsModel
+		c.BindJSON(&metric)
+
+		if metric.MType == string(models.GaugeType) {
+			value, err := repository.GetGaugeMetricValueByName(metric.ID, models.GaugeType)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
+			c.JSON(200, value)
+		} else if metric.MType == string(models.CounterType) {
+			value, err := repository.GetCountMetricValueByName(metric.ID)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+
+			}
+			c.JSON(200, value)
+
+		}
+	})
+}
+
+func RegisterUpdateRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
+
+	rg.POST("/", func(c *gin.Context) {
+		var metric models.UpdateMetricsModel
+
+		// TODO: err handling
+		c.BindJSON(&metric)
+
+		if metric.MType == string(models.GaugeType) {
+			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
+
+		}
+		// return body
+		c.JSON(200, metric)
+
+	})
+
+}
+
+func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogger) *gin.Engine {
+
+	r := gin.New()
+	r.Use(RequestLogger(logger))
 
 	r.POST("/echo", func(c *gin.Context) {
 		//parse body and send it back
@@ -115,6 +166,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 
 	r.GET("/", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
+		fmt.Println("metrics:", metrics)
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})
@@ -122,12 +174,10 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 	})
 
 	updateGroup := r.Group("/update")
-	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
-	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)
+	RegisterUpdateRoute(updateGroup, repository)
 
 	getGroup := r.Group("/value")
-	registerGetGaugeRoutes(getGroup.Group("/gauge"), repository, models.GaugeType)
-	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
+	RegisterGetValueRoute(getGroup, repository)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
@@ -138,5 +188,16 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 	})
 
 	return r
+}
 
+func guidMiddleware() gin.HandlerFunc {
+	fmt.Println("guidMiddleware is called")
+
+	return func(c *gin.Context) {
+		uuid := uuid.New()
+		c.Set("uuid", uuid)
+		fmt.Printf("The request with uuid %s is started \n", uuid)
+		c.Next()
+		fmt.Printf("The request with uuid %s is served \n", uuid)
+	}
 }

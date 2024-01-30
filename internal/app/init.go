@@ -6,6 +6,7 @@ import (
 
 	db "metrics/internal/database"
 	er "metrics/internal/errors"
+	logger "metrics/internal/logger"
 	m "metrics/internal/models"
 	repo "metrics/internal/repository"
 	routes "metrics/internal/routers"
@@ -16,6 +17,7 @@ import (
 type App struct {
 	Config *AppConfig
 	Router *gin.Engine
+	logger *logger.AppLogger
 }
 
 func (a *App) Run() {
@@ -38,9 +40,10 @@ func addDefaultMetrics(repository repo.MetricsCRUDer) {
 }
 
 func NewApp(conf *AppConfig) *App {
-
 	storage := db.NewStorage()
 	repository := repo.NewMerticsRepo(storage)
+	logger := logger.NewAppLogger()
+
 	addDefaultMetrics(repository)
-	return &App{Config: conf, Router: routes.RegisterMerticsRoutes(repository)}
+	return &App{Config: conf, Router: routes.RegisterMerticsRoutes(repository, logger), logger: logger}
 }
