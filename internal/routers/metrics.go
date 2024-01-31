@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	er "metrics/internal/errors"
@@ -9,6 +10,7 @@ import (
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
 
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -106,7 +108,19 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 	rg.POST("/", func(c *gin.Context) {
 		var metric models.UpdateMetricsModel
-		c.BindJSON(&metric)
+		var buf bytes.Buffer
+
+		// читаем тело запроса
+		_, err := buf.ReadFrom(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		}
+
+		// десериализуем JSON
+		if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse	body"})
+			return
+		}
 
 		if metric.MType == string(models.GaugeType) {
 			value, err := repository.GetGaugeMetricValueByName(metric.ID, models.GaugeType)
@@ -134,8 +148,19 @@ func RegisterUpdateRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 	rg.POST("/", func(c *gin.Context) {
 		var metric models.UpdateMetricsModel
 
-		// TODO: err handling
-		c.BindJSON(&metric)
+		var buf bytes.Buffer
+
+		// читаем тело запроса
+		_, err := buf.ReadFrom(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		}
+
+		// десериализуем JSON
+		if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse	body"})
+			return
+		}
 
 		if metric.MType == string(models.GaugeType) {
 			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value)
