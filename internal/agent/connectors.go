@@ -88,51 +88,59 @@ func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
 // 	}
 // }
 
-func makeBody(name string, metricType m.MetricType, value string) (m.UpdateMetricsModel, error) {
+func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetricsModel {
 	if metricType == m.GaugeType {
 		value, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			log.Println("!Error while parsing float value ", err, " for metric : ", name)
+			value = 0
+		}
 		return m.UpdateMetricsModel{
 			ID:    name,
 			MType: string(metricType),
 			Value: &value,
-		}, err
+		}
 	} else if metricType == m.CounterType {
 		value, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			log.Println("!Error while parsing int value ", err, " for metric : ", name)
+			value = 0
+		}
 		return m.UpdateMetricsModel{
 			ID:    name,
 			MType: string(metricType),
 			Delta: &value,
-		}, err
+		}
 	}
-	return m.UpdateMetricsModel{}, nil
+	return m.UpdateMetricsModel{}
 }
 
 func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 
 	for metric, value := range data.GaugeMetrics {
-		body, err := makeBody(metric, m.GaugeType, value)
-		if err != nil {
-			log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
-			continue
-		}
+		body := makeBody(metric, m.GaugeType, value)
+		// if err != nil {
+		// 	log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
+		// 	continue
+		// }
 		uc.SendSingleLog(body)
 	}
 
 	for metric, value := range data.UserMetrcs {
-		body, err := makeBody(metric, m.GaugeType, value)
-		if err != nil {
-			log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
-			continue
-		}
+		body := makeBody(metric, m.GaugeType, value)
+		// if err != nil {
+		// 	log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
+		// 	continue
+		// }
 		uc.SendSingleLog(body)
 	}
 
 	for metric, value := range data.CounterMetrics {
-		body, err := makeBody(metric, m.CounterType, value)
-		if err != nil {
-			log.Printf("Error %s while parsing int value %s for metric : %s", err, value, metric)
-			continue
-		}
+		body := makeBody(metric, m.CounterType, value)
+		// if err != nil {
+		// 	log.Printf("Error %s while parsing int value %s for metric : %s", err, value, metric)
+		// 	continue
+		// }
 		uc.SendSingleLog(body)
 	}
 
