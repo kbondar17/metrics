@@ -9,12 +9,12 @@ import (
 
 type MemStorage struct {
 	GaugeData map[string]float64
-	CountData map[string]int
+	CountData map[string]int64
 	mu        sync.RWMutex
 }
 
 func NewMemStorage() *MemStorage {
-	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int)}
+	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int64)}
 }
 
 func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
@@ -48,7 +48,7 @@ func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.Metric
 	}
 }
 
-func (ms *MemStorage) GetCountMetricValueByName(name string) (int, error) {
+func (ms *MemStorage) GetCountMetricValueByName(name string) (int64, error) {
 	ms.mu.RLock()
 	val, ok := ms.CountData[name]
 	ms.mu.RUnlock()
@@ -86,7 +86,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Unlock()
 		return nil
 	case models.CounterType:
-		val, ok := value.(int)
+		val, ok := value.(int64)
 		if !ok {
 			return er.ErrParse
 		}

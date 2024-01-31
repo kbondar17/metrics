@@ -167,9 +167,13 @@ func RegisterUpdateRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
-
+		} else if metric.MType == string(models.CounterType) {
+			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
 		}
-		// return body
+
 		c.JSON(200, metric)
 
 	})

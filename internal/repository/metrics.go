@@ -11,7 +11,7 @@ import (
 
 type MetricsCRUDer interface {
 	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
-	GetCountMetricValueByName(name string) (int, error)
+	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	GetAllMetrics() []models.MetricResponseModel
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
@@ -20,7 +20,7 @@ type MetricsCRUDer interface {
 type Storager interface {
 	CheckIfMetricExists(name string, mType models.MetricType) (bool, error)
 	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
-	GetCountMetricValueByName(name string) (int, error)
+	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
 }
@@ -59,7 +59,7 @@ func (repo MerticsRepo) GetAllMetrics() []models.MetricResponseModel {
 	return AllMetrics
 }
 
-func (repo MerticsRepo) GetCountMetricValueByName(name string) (int, error) {
+func (repo MerticsRepo) GetCountMetricValueByName(name string) (int64, error) {
 	exists, err := repo.Storage.CheckIfMetricExists(name, models.CounterType)
 
 	if !exists {

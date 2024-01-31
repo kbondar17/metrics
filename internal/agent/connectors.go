@@ -109,10 +109,10 @@ func makeBody(name string, metricType m.MetricType, value string) (m.UpdateMetri
 
 func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 
-	for metric, rawValue := range data.GaugeMetrics {
-		body, err := makeBody(metric, m.GaugeType, rawValue)
+	for metric, value := range data.GaugeMetrics {
+		body, err := makeBody(metric, m.GaugeType, value)
 		if err != nil {
-			log.Printf("Error %s while parsing float value %s for metric : %s", err, rawValue, metric)
+			log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
 			continue
 		}
 		uc.SendSingleLog(body)
