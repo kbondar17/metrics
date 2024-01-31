@@ -23,7 +23,8 @@ func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRU
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
 		name := c.Params.ByName("name")
-		value, err := strconv.Atoi(c.Params.ByName("value"))
+		value, err := strconv.ParseInt(c.Params.ByName("value"), 10, 64)
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
