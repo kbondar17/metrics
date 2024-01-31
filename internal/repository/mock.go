@@ -68,10 +68,10 @@ func (mr *MockMetricsCRUDerMockRecorder) GetAllMetrics() *gomock.Call {
 }
 
 // GetCountMetricValueByName mocks base method.
-func (m *MockMetricsCRUDer) GetCountMetricValueByName(name string) (int, error) {
+func (m *MockMetricsCRUDer) GetCountMetricValueByName(name string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCountMetricValueByName", name)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -164,10 +164,10 @@ func (mr *MockStoragerMockRecorder) Create(metricName, metricType any) *gomock.C
 }
 
 // GetCountMetricValueByName mocks base method.
-func (m *MockStorager) GetCountMetricValueByName(name string) (int, error) {
+func (m *MockStorager) GetCountMetricValueByName(name string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCountMetricValueByName", name)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
