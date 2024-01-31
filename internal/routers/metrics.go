@@ -126,14 +126,14 @@ func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 		if metric.MType == string(models.GaugeType) {
 			value, err := repository.GetGaugeMetricValueByName(metric.ID, models.GaugeType)
 			if err == er.ErrorNotFound {
-				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
 			c.Header("Content-Type", "application/json")
 			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
 		} else if metric.MType == string(models.CounterType) {
 			value, err := repository.GetCountMetricValueByName(metric.ID)
 			if err == er.ErrorNotFound {
-				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
 
 			}
 			value64 := int64(value)
