@@ -112,9 +112,7 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 	for metric, rawValue := range data.GaugeMetrics {
 		body, err := makeBody(metric, m.GaugeType, rawValue)
 		if err != nil {
-
-			log.Println("Error while parsing float64 value: ", err)
-
+			log.Printf("Error %s while parsing float value %s for metric : %s", err, rawValue, metric)
 			continue
 		}
 		uc.SendSingleLog(body)
@@ -123,9 +121,7 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 	for metric, value := range data.UserMetrcs {
 		body, err := makeBody(metric, m.GaugeType, value)
 		if err != nil {
-
-			log.Println("Error while parsing float64 value: ", err)
-
+			log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
 			continue
 		}
 		uc.SendSingleLog(body)
@@ -134,9 +130,7 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 	for metric, value := range data.CounterMetrics {
 		body, err := makeBody(metric, m.CounterType, value)
 		if err != nil {
-
-			log.Println("Error while parsing int64 value: ", err)
-
+			log.Printf("Error %s while parsing int value %s for metric : %s", err, value, metric)
 			continue
 		}
 		uc.SendSingleLog(body)
