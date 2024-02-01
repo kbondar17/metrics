@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"log"
 	m "metrics/internal/models"
 	"net/http"
@@ -45,10 +44,6 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 
 	url, _ := url.JoinPath(uc.baseURL, "/update")
 
-	// mapa := map[string]string{
-	// 	"key_test": "test_value",
-	// }
-
 	bodyBytes, _ := json.Marshal(body)
 
 	var b bytes.Buffer
@@ -67,24 +62,9 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 	compressedBody := b.Bytes()
 	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 
-	// req, err := http.NewRequest("POST", url, &b)
-
-	// decompress
-	// var bu bytes.Buffer
-	// r, err := gzip.NewReader(bytes.NewReader(compressedBody))
-	// defer r.Close()
-	// // в переменную b записываются распакованные данные
-	// _, err = bu.ReadFrom(r)
-	// if err != nil {
-	// 	log.Println("Error while decompressing data: ", err)
-	// 	return
-	// }
-	// fmt.Println("decompressed data:: ", bu.String())
-
 	if errs != nil {
-		log.Println("Error while sending data  ", errs)
+		log.Println("Error while sending data  ", errs, " response: ", resp)
 	}
-	fmt.Println("resp:", resp)
 }
 
 func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
@@ -102,25 +82,6 @@ func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
 	}
 
 }
-
-// SendSingleLog sends single log to server
-// func (uc UserClient) _SendSingleLog(metricName string, metricType m.MetricType, strValue string) {
-
-// 	url, err := url.JoinPath(uc.baseURL, "/update/", string(metricType), metricName, strValue)
-
-// 	// log.Println("Sending data to:: ", url)
-
-// 	if err != nil {
-// 		log.Println("Error while creating url  ", err)
-// 	}
-
-// 	// _, _, errs := uc.httpClient.Post(url).End()
-// 	_, errs := uc.PostWithLogging(url)
-
-// 	if errs != nil {
-// 		log.Println("Error while sending data  ", errs)
-// 	}
-// }
 
 func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetricsModel {
 	if metricType == m.GaugeType {
@@ -153,7 +114,6 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 
 	for metric, value := range data.GaugeMetrics {
 		body := makeBody(metric, m.GaugeType, value)
-		// uc.SendSingleLog(body)
 		uc.SendSingleLogCompressed(body)
 
 	}
@@ -165,7 +125,6 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 
 	for metric, value := range data.CounterMetrics {
 		body := makeBody(metric, m.CounterType, value)
-		// uc.SendSingleLog(body)
 		uc.SendSingleLogCompressed(body)
 	}
 

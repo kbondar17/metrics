@@ -18,12 +18,10 @@ type CompressWriter struct {
 }
 
 func (w CompressWriter) Write(b []byte) (int, error) {
-	fmt.Println("data size before compression: ", len(b))
 	compressed, err := Compress(b)
 	if err != nil {
 		return 0, fmt.Errorf("failed to compress data: %v", err)
 	}
-	fmt.Println("data size after compression: ", len(compressed))
 	return w.ResponseWriter.Write(compressed)
 
 }
@@ -62,56 +60,18 @@ func Compress(data []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// Decompress распаковывает слайс байт.
-func Decompress(data []byte) ([]byte, error) {
-	if len(data) == 0 {
-		fmt.Println("data is empty")
-		return nil, fmt.Errorf("data is empty")
-	}
-
-	var b bytes.Buffer
-	r, err := gzip.NewReader(bytes.NewReader(data))
-
-	if err != nil {
-		return nil, fmt.Errorf("failed init decompress reader: %v", err)
-	}
-
-	defer r.Close()
-	_, err = b.ReadFrom(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed decompress data: %v", err)
-	}
-	fmt.Println("data:: ", data)
-	return b.Bytes(), nil
-}
-
 var canGzip []string = []string{"application/json", "application/xml", "text/plain", "text/html"}
-
-func haveCommonElement(a, b []string) bool {
-	for _, v := range a {
-		for _, w := range b {
-			fmt.Println("comparing: ", "conType: ", v, "cat zip: ", w)
-			if v == w {
-				return true
-			}
-		}
-	}
-	return false
-}
 
 func CompressionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		headers := c.Request.Header
 
-		// contTypes := strings.Split(headers.Get("Accept"), ",")
-		// && haveCommonElement(contTypes, canGzip)
 		if strings.Contains(headers.Get("Accept-Encoding"), "gzip") {
 			compressWriter := CompressWriter{c.Writer}
 			compressWriter.Header().Set("Content-Encoding", "gzip")
 			c.Writer = compressWriter
 			log.Println("sending gzip")
 			c.Next()
-			return
 		} else {
 			log.Println("no gzip")
 			c.Next()
@@ -125,15 +85,13 @@ func DeCompressionMiddleware() gin.HandlerFunc {
 		if !strings.Contains(headers.Get("Content-Encoding"), "gzip") {
 			c.Next()
 		} else {
-			log.Println("обрабатываем gzip")
+			log.Println("decompressing gzip")
 
 			bodyBytes, err := io.ReadAll(c.Request.Body)
 			if err != nil {
-				fmt.Println("Error while reading request body: ", err)
+				log.Println("Error while reading request body: ", err)
 
 			}
-			// fmt.Println("bodyBytes:", bodyBytes)
-			// fmt.Println("string(bodyBytes):", string(bodyBytes))
 
 			var bu bytes.Buffer
 			r, err := gzip.NewReader(bytes.NewReader(bodyBytes))
@@ -148,9 +106,6 @@ func DeCompressionMiddleware() gin.HandlerFunc {
 				log.Println("Error while decompressing data: ", err)
 				return
 			}
-
-			fmt.Println("decompressed data:: ", bu.String())
-
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bu.Bytes()))
 
 			c.Next()
