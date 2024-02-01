@@ -21,7 +21,7 @@ func TestBase(t *testing.T) {
 	mockRepo := repository.NewMerticsRepo(mockStorage)
 
 	logger := logger.NewAppLogger()
-	router := RegisterMerticsRoutes(mockRepo, logger)
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/ping", nil)
@@ -45,7 +45,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
 	logger := logger.NewAppLogger()
-	router := RegisterMerticsRoutes(mockRepo, logger)
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	tests := []struct {
 		name           string
@@ -103,7 +103,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(er.ErrorNotFound).AnyTimes()
 
 	logger := logger.NewAppLogger()
-	router := RegisterMerticsRoutes(mockRepo, logger)
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	tests := []struct {
 		name           string

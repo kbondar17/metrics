@@ -54,10 +54,10 @@ func (mr *MockMetricsCRUDerMockRecorder) Create(metricName, metricType any) *gom
 }
 
 // GetAllMetrics mocks base method.
-func (m *MockMetricsCRUDer) GetAllMetrics() []models.MetricResponseModel {
+func (m *MockMetricsCRUDer) GetAllMetrics() []models.UpdateMetricsModel {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMetrics")
-	ret0, _ := ret[0].([]models.MetricResponseModel)
+	ret0, _ := ret[0].([]models.UpdateMetricsModel)
 	return ret0
 }
 
