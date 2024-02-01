@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	er "metrics/internal/errors"
-	"strings"
 
 	logger "metrics/internal/logger"
 	"metrics/internal/models"
@@ -223,10 +222,9 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
-		data := []byte(strings.Repeat(`This is a test message`, 100))
-		c.String(http.StatusOK, string(data))
-
-		// c.String(http.StatusOK, "pong")
+		// data := []byte(strings.Repeat(`This is a test message`, 100))
+		// c.String(http.StatusOK, string(data))
+		c.String(http.StatusOK, "pong")
 	})
 
 	r.NoRoute(func(c *gin.Context) {
