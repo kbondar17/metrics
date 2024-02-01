@@ -71,6 +71,11 @@ func Decompress(data []byte) ([]byte, error) {
 
 	var b bytes.Buffer
 	r, err := gzip.NewReader(bytes.NewReader(data))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed init decompress reader: %v", err)
+	}
+
 	defer r.Close()
 	_, err = b.ReadFrom(r)
 	if err != nil {
@@ -119,12 +124,19 @@ func DeCompressionMiddleware() gin.HandlerFunc {
 			bodyBytes, err := io.ReadAll(c.Request.Body)
 			if err != nil {
 				fmt.Println("Error while reading request body: ", err)
+
 			}
 			// fmt.Println("bodyBytes:", bodyBytes)
 			// fmt.Println("string(bodyBytes):", string(bodyBytes))
 
 			var bu bytes.Buffer
 			r, err := gzip.NewReader(bytes.NewReader(bodyBytes))
+			if err != nil {
+				log.Println("Error while creating gzip reader: ", err)
+				return
+			}
+
+			defer r.Close()
 			_, err = bu.ReadFrom(r)
 			if err != nil {
 				log.Println("Error while decompressing data: ", err)

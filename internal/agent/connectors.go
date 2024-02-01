@@ -43,7 +43,7 @@ func NewUserClient(config AgentConfig) UserClient {
 
 func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 
-	url, err := url.JoinPath(uc.baseURL, "/update")
+	url, _ := url.JoinPath(uc.baseURL, "/update")
 
 	// mapa := map[string]string{
 	// 	"key_test": "test_value",
@@ -54,12 +54,12 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 
-	if _, err = gz.Write(bodyBytes); err != nil {
+	if _, err := gz.Write(bodyBytes); err != nil {
 		log.Println("Error while writing to gzip writer: ", err)
 		return
 	}
 
-	if err = gz.Close(); err != nil {
+	if err := gz.Close(); err != nil {
 		log.Println("Error while closing gzip writer: ", err)
 		return
 	}
