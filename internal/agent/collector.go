@@ -43,6 +43,6 @@ func (coll *Collector) CollectMetrics(pollCount *int, container *m.MetricSendCon
 	*pollCount++
 
 	container.CounterMetrics["PollCount"] = fmt.Sprintf("%d", *pollCount)
-	log.Println("Collected data: ", container)
+	// log.Println("Collected data: ", container)
 
 }

@@ -1,6 +1,10 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
 	"log"
 	m "metrics/internal/models"
 	"net/http"
@@ -37,21 +41,51 @@ func NewUserClient(config AgentConfig) UserClient {
 	return userClient
 }
 
-// func (uc *UserClient) PostWithLogging(url string) (gorequest.Response, []error) {
-// 	start := time.Now()
-// 	resp, _, errs := uc.httpClient.Clone().Post(url).End()
-// 	elapsed := time.Since(start)
+func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 
-// 	// TODO: switch to custom logger
-// 	if errs != nil {
-// 		log.Println("Request failed:", errs)
+	url, err := url.JoinPath(uc.baseURL, "/update")
 
-// 	} else {
-// 		log.Printf("url: %s | time: %s | status: %s", url, elapsed, resp.Status)
-// 	}
-// 	return resp, errs
+	// mapa := map[string]string{
+	// 	"key_test": "test_value",
+	// }
 
-// }
+	bodyBytes, _ := json.Marshal(body)
+
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+
+	if _, err = gz.Write(bodyBytes); err != nil {
+		log.Println("Error while writing to gzip writer: ", err)
+		return
+	}
+
+	if err = gz.Close(); err != nil {
+		log.Println("Error while closing gzip writer: ", err)
+		return
+	}
+
+	compressedBody := b.Bytes()
+	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+
+	// req, err := http.NewRequest("POST", url, &b)
+
+	// decompress
+	// var bu bytes.Buffer
+	// r, err := gzip.NewReader(bytes.NewReader(compressedBody))
+	// defer r.Close()
+	// // в переменную b записываются распакованные данные
+	// _, err = bu.ReadFrom(r)
+	// if err != nil {
+	// 	log.Println("Error while decompressing data: ", err)
+	// 	return
+	// }
+	// fmt.Println("decompressed data:: ", bu.String())
+
+	if errs != nil {
+		log.Println("Error while sending data  ", errs)
+	}
+	fmt.Println("resp:", resp)
+}
 
 func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
 
@@ -119,29 +153,20 @@ func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 
 	for metric, value := range data.GaugeMetrics {
 		body := makeBody(metric, m.GaugeType, value)
-		// if err != nil {
-		// 	log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
-		// 	continue
-		// }
-		uc.SendSingleLog(body)
+		// uc.SendSingleLog(body)
+		uc.SendSingleLogCompressed(body)
+
 	}
 
 	for metric, value := range data.UserMetrcs {
 		body := makeBody(metric, m.GaugeType, value)
-		// if err != nil {
-		// 	log.Printf("Error %s while parsing float value %s for metric : %s", err, value, metric)
-		// 	continue
-		// }
 		uc.SendSingleLog(body)
 	}
 
 	for metric, value := range data.CounterMetrics {
 		body := makeBody(metric, m.CounterType, value)
-		// if err != nil {
-		// 	log.Printf("Error %s while parsing int value %s for metric : %s", err, value, metric)
-		// 	continue
-		// }
-		uc.SendSingleLog(body)
+		// uc.SendSingleLog(body)
+		uc.SendSingleLogCompressed(body)
 	}
 
 }

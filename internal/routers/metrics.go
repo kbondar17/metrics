@@ -3,8 +3,10 @@ package routers
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	er "metrics/internal/errors"
+	"strings"
 
 	logger "metrics/internal/logger"
 	"metrics/internal/models"
@@ -185,14 +187,17 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	r := gin.New()
 	r.Use(RequestLogger(logger))
+	r.Use((CompressionMiddleware()))
+	r.Use(DeCompressionMiddleware())
 
 	r.POST("/echo", func(c *gin.Context) {
-		//parse body and send it back
-		var body interface{}
-		c.BindJSON(&body)
-		body.(map[string]interface{})["message"] = "from server"
-		c.JSON(200, body)
-
+		fmt.Println("body::", c.Request.Body)
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Failed to read body")
+			return
+		}
+		c.Data(http.StatusOK, "text/plain", bodyBytes)
 	})
 
 	r.LoadHTMLFiles("templates/metrics.html")
@@ -206,6 +211,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	})
 
+	// TODO: rename functions!
 	updateGroup := r.Group("/update")
 	RegisterUpdateRoute(updateGroup, repository)
 	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
@@ -217,7 +223,10 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
+		data := []byte(strings.Repeat(`This is a test message`, 100))
+		c.String(http.StatusOK, string(data))
+
+		// c.String(http.StatusOK, "pong")
 	})
 
 	r.NoRoute(func(c *gin.Context) {
