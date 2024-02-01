@@ -2,21 +2,19 @@ package routers
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	er "metrics/internal/errors"
 
+	"encoding/json"
+	db "metrics/internal/database"
 	logger "metrics/internal/logger"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
-
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // registerUpdateCounterRoutes registers handlers for metrics of type 'Counter'
@@ -107,7 +105,7 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 
 }
 
-func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
+func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 	rg.POST("/", func(c *gin.Context) {
 		var metric models.UpdateMetricsModel
 		var buf bytes.Buffer
@@ -145,7 +143,7 @@ func RegisterGetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 	})
 }
 
-func RegisterUpdateRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
+func registerUpdateRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStorage bool, storagePath string) {
 
 	rg.POST("/", func(c *gin.Context) {
 		var metric models.UpdateMetricsModel
@@ -176,13 +174,18 @@ func RegisterUpdateRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
 			}
 		}
 
+		if syncStorage {
+			log.Println("сохранили метрики")
+			db.Save(storagePath, repository.GetAllMetrics())
+		}
+
 		c.JSON(200, metric)
 
 	})
 
 }
 
-func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogger) *gin.Engine {
+func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogger, syncStorage bool, storagePath string) *gin.Engine {
 
 	r := gin.New()
 	r.Use(RequestLogger(logger))
@@ -190,7 +193,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 	r.Use(DeCompressionMiddleware())
 
 	r.POST("/echo", func(c *gin.Context) {
-		fmt.Println("body::", c.Request.Body)
+		log.Println("body:: ", c.Request.Body)
 		bodyBytes, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Failed to read body")
@@ -203,28 +206,28 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	r.GET("/", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
-		fmt.Println("metrics:", metrics)
+		log.Println("metrics:", metrics)
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})
 
 	})
 
-	// TODO: rename functions!
 	updateGroup := r.Group("/update")
-	RegisterUpdateRoute(updateGroup, repository)
+	registerUpdateRouteViaPost(updateGroup, repository, syncStorage, storagePath)
+
 	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
 	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)
 
 	getGroup := r.Group("/value")
-	RegisterGetValueRoute(getGroup, repository)
+	registerGetValueRouteViaPost(getGroup, repository)
+
 	registerGetGaugeRoutes(getGroup.Group("/gauge"), repository, models.GaugeType)
 	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
-		// data := []byte(strings.Repeat(`This is a test message`, 100))
-		// c.String(http.StatusOK, string(data))
 		c.String(http.StatusOK, "pong")
+
 	})
 
 	r.NoRoute(func(c *gin.Context) {
@@ -232,16 +235,4 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 	})
 
 	return r
-}
-
-func guidMiddleware() gin.HandlerFunc {
-	fmt.Println("guidMiddleware is called")
-
-	return func(c *gin.Context) {
-		uuid := uuid.New()
-		c.Set("uuid", uuid)
-		fmt.Printf("The request with uuid %s is started \n", uuid)
-		c.Next()
-		fmt.Printf("The request with uuid %s is served \n", uuid)
-	}
 }

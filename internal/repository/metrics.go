@@ -2,7 +2,6 @@
 package repository
 
 import (
-	"fmt"
 	"log"
 	er "metrics/internal/errors"
 
@@ -13,7 +12,7 @@ type MetricsCRUDer interface {
 	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
-	GetAllMetrics() []models.MetricResponseModel
+	GetAllMetrics() []models.UpdateMetricsModel
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
 }
 
@@ -33,17 +32,15 @@ func NewMerticsRepo(storage Storager) MetricsCRUDer {
 	return MerticsRepo{Storage: storage}
 }
 
-func (repo MerticsRepo) GetAllMetrics() []models.MetricResponseModel {
-	var AllMetrics []models.MetricResponseModel
-
+func (repo MerticsRepo) GetAllMetrics() []models.UpdateMetricsModel {
+	var AllMetrics []models.UpdateMetricsModel
 	for _, metricName := range models.MetricsDict[models.GaugeType] {
 		value, err := repo.Storage.GetGaugeMetricValueByName(metricName, models.GaugeType)
 		if err != nil {
 			log.Printf("failed to get metric by name: %v", err)
 			value = 0.0
 		}
-
-		AllMetrics = append(AllMetrics, models.MetricResponseModel{Name: metricName, Value: fmt.Sprintf("%f", value), Type: models.GaugeType})
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: &value, MType: string(models.GaugeType)})
 	}
 
 	for _, metricName := range models.MetricsDict[models.CounterType] {
@@ -52,10 +49,9 @@ func (repo MerticsRepo) GetAllMetrics() []models.MetricResponseModel {
 			log.Printf("failed to get metric by name: %v", err)
 			value = 0
 		}
-		AllMetrics = append(AllMetrics, models.MetricResponseModel{Name: metricName, Value: fmt.Sprintf("%d", value), Type: models.CounterType})
-
+		value64 := int64(value)
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &value64, MType: string(models.CounterType)})
 	}
-
 	return AllMetrics
 }
 
@@ -104,19 +100,15 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 }
 
 func (repo MerticsRepo) UpdateMetric(name string, metrciType models.MetricType, value interface{}) error {
-
 	exists, err := repo.Storage.CheckIfMetricExists(name, metrciType)
 	if err != nil {
 		return err
 	}
-
 	if !exists {
 		err = repo.Create(name, metrciType)
 		if err != nil {
 			return err
 		}
 	}
-
 	return repo.Storage.UpdateMetric(name, metrciType, value)
-
 }

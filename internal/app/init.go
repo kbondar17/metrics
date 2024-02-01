@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"log"
+	"time"
 
 	db "metrics/internal/database"
 	er "metrics/internal/errors"
@@ -15,14 +16,27 @@ import (
 )
 
 type App struct {
-	Config *AppConfig
-	Router *gin.Engine
-	logger *logger.AppLogger
+	Config     *AppConfig
+	Router     *gin.Engine
+	logger     *logger.AppLogger
+	repository repo.MetricsCRUDer
 }
 
 func (a *App) Run() {
 	log.Println("Starting server on ", a.Config.host)
 	a.Router.Run(a.Config.host)
+}
+
+func (a *App) SaveDataInInterval(storeInterval int, fname string) {
+	for {
+		metrics := a.repository.GetAllMetrics()
+		err := db.Save(fname, metrics)
+		if err != nil {
+			log.Printf("failed to save metrics: %v", err)
+		}
+		log.Println("saved metrics")
+		time.Sleep(time.Duration(storeInterval) * time.Second)
+	}
 }
 
 // addDefaultMetrics creates all metrics in DB
@@ -44,6 +58,37 @@ func NewApp(conf *AppConfig) *App {
 	repository := repo.NewMerticsRepo(storage)
 	logger := logger.NewAppLogger()
 
+	var syncStorage bool
+	if conf.StoreInterval == 0 {
+		syncStorage = true
+	} else {
+		syncStorage = false
+	}
+	if conf.restoreOnStartUp {
+		restoredMetrics, err := db.Load(conf.StoragePath)
+		if err != nil {
+			log.Printf("failed to load metrics: %v", err)
+		}
+		for _, metric := range restoredMetrics {
+			if metric.MType == string(m.GaugeType) {
+				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value)
+				if err != nil {
+					log.Printf("failed to update metric: %v", err)
+				}
+			}
+			if metric.MType == string(m.CounterType) {
+				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta)
+				if err != nil {
+					log.Printf("failed to update metric: %v", err)
+				}
+			}
+		}
+		log.Println("restored metrics")
+	}
+
+	router := routes.RegisterMerticsRoutes(repository, logger, syncStorage, conf.StoragePath)
+
 	addDefaultMetrics(repository)
-	return &App{Config: conf, Router: routes.RegisterMerticsRoutes(repository, logger), logger: logger}
+
+	return &App{Config: conf, Router: router, logger: logger, repository: repository}
 }
