@@ -37,7 +37,6 @@ func getConfig() (string, int, string, bool) {
 	}
 
 	defaultStoragePath := "/tmp/metrics-db.json"
-	// defaultStoragePath := "/Users/makbuk/go/src/yandex/metrics/internal/database/backup.json"
 
 	storagePath := flag.String("f", defaultStoragePath, "Полное имя файла, куда сохраняются текущие значения. По умолчанию /tmp/metrics-db.json, пустое значение отключает функцию записи на диск")
 	if ennvStoragePath := os.Getenv("FILE_STORAGE_PATH"); ennvStoragePath != "" {

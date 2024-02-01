@@ -118,7 +118,7 @@ func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCR
 
 		// десериализуем JSON
 		if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse	body"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse body"})
 			return
 		}
 
@@ -126,6 +126,7 @@ func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCR
 			value, err := repository.GetGaugeMetricValueByName(metric.ID, models.GaugeType)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
+				return
 			}
 			c.Header("Content-Type", "application/json")
 			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
@@ -133,12 +134,13 @@ func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCR
 			value, err := repository.GetCountMetricValueByName(metric.ID)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
-
+				return
 			}
 			value64 := int64(value)
 			c.Header("Content-Type", "application/json")
 			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: &value64})
-
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown metric type"})
 		}
 	})
 }
