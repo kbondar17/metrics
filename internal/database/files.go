@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"log"
 	"metrics/internal/models"
 	"os"
 	"strings"
@@ -26,5 +27,12 @@ func Save(fname string, data []models.UpdateMetricsModel) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(fname, jsonData, 0666)
+	err = os.WriteFile(fname, jsonData, 0666)
+	if err != nil {
+		log.Println("error writing to file: ", err)
+		return err
+	}
+	log.Println("saved metrics to ", fname)
+	return nil
+
 }

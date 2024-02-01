@@ -17,6 +17,30 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int64)}
 }
 
+func (ms *MemStorage) GetAllMetrics() []models.UpdateMetricsModel {
+	var AllMetrics []models.UpdateMetricsModel
+
+	for metricName := range ms.GaugeData {
+		val, err := ms.GetGaugeMetricValueByName(metricName, models.GaugeType)
+		if err != nil {
+			log.Println("failed to get metric by name: ", err)
+			continue
+		}
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: &val, MType: string(models.GaugeType)})
+	}
+
+	for metricName := range ms.CountData {
+		val, err := ms.GetCountMetricValueByName(metricName)
+		if err != nil {
+			log.Println("failed to get metric by name: ", err)
+			continue
+		}
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &val, MType: string(models.CounterType)})
+	}
+
+	return AllMetrics
+}
+
 func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
 	switch mType {
 	case models.GaugeType:

@@ -177,7 +177,6 @@ func registerUpdateRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUD
 		}
 
 		if syncStorage {
-			log.Println("сохранили метрики")
 			db.Save(storagePath, repository.GetAllMetrics())
 		}
 

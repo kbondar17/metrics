@@ -163,6 +163,20 @@ func (mr *MockStoragerMockRecorder) Create(metricName, metricType any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockStorager)(nil).Create), metricName, metricType)
 }
 
+// GetAllMetrics mocks base method.
+func (m *MockStorager) GetAllMetrics() []models.UpdateMetricsModel {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllMetrics")
+	ret0, _ := ret[0].([]models.UpdateMetricsModel)
+	return ret0
+}
+
+// GetAllMetrics indicates an expected call of GetAllMetrics.
+func (mr *MockStoragerMockRecorder) GetAllMetrics() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMetrics", reflect.TypeOf((*MockStorager)(nil).GetAllMetrics))
+}
+
 // GetCountMetricValueByName mocks base method.
 func (m *MockStorager) GetCountMetricValueByName(name string) (int64, error) {
 	m.ctrl.T.Helper()

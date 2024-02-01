@@ -34,7 +34,6 @@ func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 		if err != nil {
 			log.Printf("failed to save metrics: %v", err)
 		}
-		log.Println("saved metrics")
 		time.Sleep(time.Duration(storeInterval) * time.Second)
 	}
 }
@@ -69,6 +68,8 @@ func NewApp(conf *AppConfig) *App {
 		if err != nil {
 			log.Printf("failed to load metrics: %v", err)
 		}
+		log.Println("restored metrics::", restoredMetrics)
+
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
 				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value)

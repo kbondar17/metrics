@@ -22,6 +22,7 @@ type Storager interface {
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
+	GetAllMetrics() []models.UpdateMetricsModel
 }
 
 type MerticsRepo struct {
@@ -33,26 +34,9 @@ func NewMerticsRepo(storage Storager) MetricsCRUDer {
 }
 
 func (repo MerticsRepo) GetAllMetrics() []models.UpdateMetricsModel {
-	var AllMetrics []models.UpdateMetricsModel
-	for _, metricName := range models.MetricsDict[models.GaugeType] {
-		value, err := repo.Storage.GetGaugeMetricValueByName(metricName, models.GaugeType)
-		if err != nil {
-			log.Printf("failed to get metric by name: %v", err)
-			value = 0.0
-		}
-		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: &value, MType: string(models.GaugeType)})
-	}
-
-	for _, metricName := range models.MetricsDict[models.CounterType] {
-		value, err := repo.Storage.GetCountMetricValueByName(metricName)
-		if err != nil {
-			log.Printf("failed to get metric by name: %v", err)
-			value = 0
-		}
-		value64 := int64(value)
-		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &value64, MType: string(models.CounterType)})
-	}
-	return AllMetrics
+	metrics := repo.Storage.GetAllMetrics()
+	log.Println("all metrics: ", metrics)
+	return metrics
 }
 
 func (repo MerticsRepo) GetCountMetricValueByName(name string) (int64, error) {
@@ -91,7 +75,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 		return err
 	}
 	if exists {
-		log.Printf("metric already exists: %v", err)
+		// log.Printf("metric already exists: %v", err)
 		return er.ErrAlreadyExists
 	}
 	log.Println("Создали метрику типа: ", metricType, " с именем: ", metricName)

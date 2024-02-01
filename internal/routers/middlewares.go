@@ -39,7 +39,6 @@ func RequestLogger(logger *logger.AppLogger) gin.HandlerFunc {
 		logger.Logger.Infow("Request: ", "url: ", url, "method: ", method, "size: ", size, "duration", time.Since(start))
 		logger.Logger.Infow("Response: ", "status: ", status, "size: ", size, "duration", time.Since(start))
 	}
-
 }
 
 // Compress compresses a slice of bytes using gzip.
