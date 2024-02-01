@@ -103,9 +103,9 @@ func CompressionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		headers := c.Request.Header
 
-		contTypes := strings.Split(headers.Get("Accept"), ",")
-
-		if strings.Contains(headers.Get("Accept-Encoding"), "gzip") && haveCommonElement(contTypes, canGzip) {
+		// contTypes := strings.Split(headers.Get("Accept"), ",")
+		// && haveCommonElement(contTypes, canGzip)
+		if strings.Contains(headers.Get("Accept-Encoding"), "gzip") {
 			compressWriter := CompressWriter{c.Writer}
 			compressWriter.Header().Set("Content-Encoding", "gzip")
 			c.Writer = compressWriter
