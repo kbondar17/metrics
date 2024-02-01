@@ -186,7 +186,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 
 	r := gin.New()
 	r.Use(RequestLogger(logger))
-	r.Use((CompressionMiddleware()))
+	r.Use(CompressionMiddleware())
 	r.Use(DeCompressionMiddleware())
 
 	r.POST("/echo", func(c *gin.Context) {

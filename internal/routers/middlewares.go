@@ -87,10 +87,13 @@ func Decompress(data []byte) ([]byte, error) {
 
 var canGzip []string = []string{"application/json", "application/xml", "text/plain", "text/html"}
 
-func stringInSlice(str string, list []string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
+func haveCommonElement(a, b []string) bool {
+	for _, v := range a {
+		for _, w := range b {
+			fmt.Println("comparing: ", "conType: ", v, "cat zip: ", w)
+			if v == w {
+				return true
+			}
 		}
 	}
 	return false
@@ -99,7 +102,10 @@ func stringInSlice(str string, list []string) bool {
 func CompressionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		headers := c.Request.Header
-		if strings.Contains(headers.Get("Accept-Encoding"), "gzip") && stringInSlice(headers.Get("Content-Type"), canGzip) {
+
+		contTypes := strings.Split(headers.Get("Accept"), ",")
+
+		if strings.Contains(headers.Get("Accept-Encoding"), "gzip") && haveCommonElement(contTypes, canGzip) {
 			compressWriter := CompressWriter{c.Writer}
 			compressWriter.Header().Set("Content-Encoding", "gzip")
 			c.Writer = compressWriter
