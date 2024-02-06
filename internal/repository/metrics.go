@@ -13,7 +13,7 @@ type MetricsCRUDer interface {
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	GetAllMetrics() []models.UpdateMetricsModel
-	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
+	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
 }
 
 type Storager interface {
@@ -21,7 +21,7 @@ type Storager interface {
 	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
-	UpdateMetric(name string, metrciType models.MetricType, value interface{}) error
+	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
 	GetAllMetrics() []models.UpdateMetricsModel
 }
 
@@ -83,7 +83,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 
 }
 
-func (repo MerticsRepo) UpdateMetric(name string, metrciType models.MetricType, value interface{}) error {
+func (repo MerticsRepo) UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {
 	exists, err := repo.Storage.CheckIfMetricExists(name, metrciType)
 	if err != nil {
 		return err
@@ -94,5 +94,5 @@ func (repo MerticsRepo) UpdateMetric(name string, metrciType models.MetricType, 
 			return err
 		}
 	}
-	return repo.Storage.UpdateMetric(name, metrciType, value)
+	return repo.Storage.UpdateMetric(name, metrciType, value, syncStorage, storagePath)
 }

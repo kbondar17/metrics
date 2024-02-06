@@ -90,20 +90,22 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 
 func TestUpdateGaugeMetric(t *testing.T) {
 	type args struct {
-		url    string
-		method string
-		body   io.Reader
+		url         string
+		method      string
+		body        io.Reader
+		syncStorage bool
+		storagePath string
 	}
 
 	ctrl := gomock.NewController(t)
 
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1).Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(er.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
 
 	logger := logger.NewAppLogger()
-	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "")
 
 	tests := []struct {
 		name           string

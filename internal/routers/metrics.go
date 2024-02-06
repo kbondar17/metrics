@@ -7,7 +7,6 @@ import (
 	er "metrics/internal/errors"
 
 	"encoding/json"
-	db "metrics/internal/database"
 	logger "metrics/internal/logger"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
@@ -27,7 +26,8 @@ func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRU
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
-		err = repository.UpdateMetric(name, models.CounterType, value)
+
+		err = repository.UpdateMetric(name, models.CounterType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
@@ -57,7 +57,7 @@ func registerUpdateGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDe
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		err = repository.UpdateMetric(name, models.GaugeType, value)
+		err = repository.UpdateMetric(name, models.GaugeType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
 		}
@@ -130,7 +130,9 @@ func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCR
 			}
 			c.Header("Content-Type", "application/json")
 			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
-		} else if metric.MType == string(models.CounterType) {
+			return
+		}
+		if metric.MType == string(models.CounterType) {
 			value, err := repository.GetCountMetricValueByName(metric.ID)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
@@ -139,9 +141,10 @@ func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCR
 			value64 := int64(value)
 			c.Header("Content-Type", "application/json")
 			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: &value64})
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown metric type"})
+			return
 		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown metric type"})
 	})
 }
 
@@ -165,19 +168,18 @@ func registerUpdateRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUD
 		}
 
 		if metric.MType == string(models.GaugeType) {
-			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value)
+			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value, syncStorage, storagePath)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
-		} else if metric.MType == string(models.CounterType) {
-			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta)
-			if err == er.ErrorNotFound {
-				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
-			}
+			return
 		}
-
-		if syncStorage {
-			db.Save(storagePath, repository.GetAllMetrics())
+		if metric.MType == string(models.CounterType) {
+			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta, syncStorage, storagePath)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
+			return
 		}
 
 		c.JSON(200, metric)
@@ -187,7 +189,6 @@ func registerUpdateRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUD
 }
 
 func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogger, syncStorage bool, storagePath string) *gin.Engine {
-
 	r := gin.New()
 	r.Use(RequestLogger(logger))
 	r.Use(CompressionMiddleware())
@@ -227,6 +228,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogg
 	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
+		// panic("test")
 		c.String(http.StatusOK, "pong")
 
 	})

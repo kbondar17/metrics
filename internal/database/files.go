@@ -6,6 +6,7 @@ import (
 	"metrics/internal/models"
 	"os"
 	"strings"
+	"sync"
 )
 
 func Load(fname string) ([]models.UpdateMetricsModel, error) {
@@ -22,17 +23,37 @@ func Load(fname string) ([]models.UpdateMetricsModel, error) {
 	return result, nil
 }
 
-func Save(fname string, data []models.UpdateMetricsModel) error {
-	jsonData, err := json.Marshal(data)
+var fileMutex = &sync.Mutex{}
+
+// SaveMetric saves metric to file
+func SaveMetric(fname string, data models.UpdateMetricsModel) error {
+	existingData, err := Load(fname)
 	if err != nil {
+		log.Println("error loading file: ", fname, err)
 		return err
 	}
+	// remove the metric to be updated
+	for i, metric := range existingData {
+		if metric.ID == data.ID && metric.MType == data.MType {
+			existingData = append(existingData[:i], existingData[i+1:]...)
+			break
+		}
+	}
+	existingData = append(existingData, data)
+
+	jsonData, err := json.Marshal(existingData)
+	if err != nil {
+		log.Println("error marshalling data: ", err)
+		return err
+	}
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
+
 	err = os.WriteFile(fname, jsonData, 0666)
 	if err != nil {
 		log.Println("error writing to file: ", err)
 		return err
 	}
-	log.Println("saved metrics to ", fname)
+	log.Println("saved metric to ", fname)
 	return nil
-
 }

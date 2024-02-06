@@ -96,8 +96,8 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 	}
 }
 
-func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}) error {
-
+func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {
+	syncStorage = true
 	log.Println("updating metric", name, metricType, value)
 	switch metricType {
 	case models.GaugeType:
@@ -108,6 +108,11 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Lock()
 		ms.GaugeData[name] = val
 		ms.mu.Unlock()
+		if syncStorage {
+			log.Println("saving metric to file: ", name, val)
+			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val})
+		}
+
 		return nil
 	case models.CounterType:
 		val, ok := value.(int64)
@@ -117,6 +122,10 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Lock()
 		ms.CountData[name] += val
 		ms.mu.Unlock()
+		if syncStorage {
+			log.Println("saving metric to file: ", name, val)
+			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val})
+		}
 		return nil
 	default:
 		log.Println("Error: unknown metric type", metricType, name)

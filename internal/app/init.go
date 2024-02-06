@@ -27,12 +27,16 @@ func (a *App) Run() {
 	a.Router.Run(a.Config.host)
 }
 
+// SaveDataInInterval saves data in interval
 func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 	for {
 		metrics := a.repository.GetAllMetrics()
-		err := db.Save(fname, metrics)
-		if err != nil {
-			log.Printf("failed to save metrics: %v", err)
+
+		for _, metric := range metrics {
+			err := db.SaveMetric(fname, metric)
+			if err != nil {
+				log.Printf("failed to save metric: %v", err)
+			}
 		}
 		time.Sleep(time.Duration(storeInterval) * time.Second)
 	}
@@ -57,14 +61,8 @@ func NewApp(conf *AppConfig) *App {
 	repository := repo.NewMerticsRepo(storage)
 	logger := logger.NewAppLogger()
 
-	var syncStorage bool
-	if conf.StoreInterval == 0 {
-		syncStorage = true
-	} else {
-		syncStorage = false
-	}
-	if conf.restoreOnStartUp {
-		restoredMetrics, err := db.Load(conf.StoragePath)
+	if conf.StorageConfig.RestoreOnStartUp {
+		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath)
 		if err != nil {
 			log.Printf("failed to load metrics: %v", err)
 		}
@@ -72,13 +70,13 @@ func NewApp(conf *AppConfig) *App {
 
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value)
+				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
 				if err != nil {
 					log.Printf("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta)
+				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
 				if err != nil {
 					log.Printf("failed to update metric: %v", err)
 				}
@@ -87,7 +85,7 @@ func NewApp(conf *AppConfig) *App {
 		log.Println("restored metrics")
 	}
 
-	router := routes.RegisterMerticsRoutes(repository, logger, syncStorage, conf.StoragePath)
+	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath)
 
 	addDefaultMetrics(repository)
 
