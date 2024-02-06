@@ -97,7 +97,6 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 }
 
 func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {
-	syncStorage = true
 	log.Println("updating metric", name, metricType, value)
 	switch metricType {
 	case models.GaugeType:
