@@ -13,10 +13,10 @@ var fileRMutex = &sync.RWMutex{}
 
 func createFile(fname string) error {
 	file, err := os.OpenFile(fname, os.O_CREATE|os.O_EXCL, 0666)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	_, err = file.Write([]byte("[]"))
 	if err != nil {
 		return err
