@@ -30,14 +30,26 @@ func (w CompressWriter) Write(b []byte) (int, error) {
 // Сведения об ответах должны содержать код статуса и размер содержимого ответа.
 func RequestLogger(logger *logger.AppLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var status, size int
+		var start time.Time
+
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Logger.Infow("Response", "status", 500, "size", 0, "duration", time.Since(start))
+				logger.Logger.Errorw("Panic recovered", "error", err)
+				c.AbortWithStatus(500)
+			} else {
+				logger.Logger.Infow("Response", "status", status, "size", size, "duration", time.Since(start))
+			}
+		}()
+
 		url := c.Request.URL
 		method := c.Request.Method
-		start := time.Now()
+		start = time.Now()
+		logger.Logger.Infow("Request", "url", url, "method", method)
 		c.Next()
-		status := c.Writer.Status()
-		size := c.Writer.Size()
-		logger.Logger.Infow("Request: ", "url: ", url, "method: ", method, "size: ", size, "duration", time.Since(start))
-		logger.Logger.Infow("Response: ", "status: ", status, "size: ", size, "duration", time.Since(start))
+		status = c.Writer.Status()
+		size = c.Writer.Size()
 	}
 }
 
