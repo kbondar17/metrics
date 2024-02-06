@@ -42,9 +42,19 @@ func NewUserClient(config AgentConfig) UserClient {
 
 func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 
-	url, _ := url.JoinPath(uc.baseURL, "/update")
+	url, err := url.JoinPath(uc.baseURL, "/update")
 
-	bodyBytes, _ := json.Marshal(body)
+	if err != nil {
+		log.Println("Error while creating url  ", err)
+		return
+	}
+
+	bodyBytes, err := json.Marshal(body)
+
+	if err != nil {
+		log.Println("Error while marshaling body  ", err)
+		return
+	}
 
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
@@ -64,6 +74,7 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 
 	if errs != nil {
 		log.Println("Error while sending data  ", errs, " response: ", resp)
+		return
 	}
 }
 
