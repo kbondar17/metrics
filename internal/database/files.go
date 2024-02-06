@@ -9,12 +9,45 @@ import (
 	"sync"
 )
 
+var fileRMutex = &sync.RWMutex{}
+
+func createFile(fname string) error {
+	file, err := os.OpenFile(fname, os.O_CREATE|os.O_EXCL, 0666)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	_, err = file.Write([]byte("[]"))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func Load(fname string) ([]models.UpdateMetricsModel, error) {
+	fileRMutex.RLock()
+	defer fileRMutex.RUnlock()
+
 	var result []models.UpdateMetricsModel
 	data, err := os.ReadFile(fname)
+
 	if err != nil {
+		log.Println("error reading file: ", err)
+		if os.IsNotExist(err) {
+			log.Println("file doesn't exist, creating: ", fname)
+			err = createFile(fname)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return nil, err
 	}
+
+	if len(data) == 0 || data == nil {
+		log.Println("empty file: ", fname)
+		data = []byte("[]")
+	}
+
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 
 	if err := decoder.Decode(&result); err != nil {
