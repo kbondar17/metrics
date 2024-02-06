@@ -6,19 +6,23 @@ import (
 	"strconv"
 )
 
-type AppConfig struct {
-	host             string
-	StoreInterval    int
+type StorageConf struct {
 	StoragePath      string
-	restoreOnStartUp bool
+	RestoreOnStartUp bool
+	MustSync         bool
+	StoreInterval    int
 }
 
-func NewAppConfig(host string, storeInterval int, storagePath string, restoreOnStartUp bool) *AppConfig {
-	return &AppConfig{host: host, StoreInterval: storeInterval, StoragePath: storagePath, restoreOnStartUp: restoreOnStartUp}
-
+type AppConfig struct {
+	host          string
+	StorageConfig StorageConf
 }
 
-func getConfig() (string, int, string, bool) {
+func NewAppConfig(host string, StorageConfig StorageConf) *AppConfig {
+	return &AppConfig{host: host, StorageConfig: StorageConfig}
+}
+
+func NewAppConfigFromEnv() *AppConfig {
 	defaultHost := "localhost:8080"
 	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
 	if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
@@ -53,10 +57,15 @@ func getConfig() (string, int, string, bool) {
 		restoreOnStartUp = &val
 	}
 	flag.Parse()
-	return *host, *storeInterval, *storagePath, *restoreOnStartUp
-}
 
-func NewAppConfigFromEnv() *AppConfig {
-	host, storeInterval, storagePath, restoreOnStartUp := getConfig()
-	return NewAppConfig(host, storeInterval, storagePath, restoreOnStartUp)
+	var mustSync bool
+
+	if *storeInterval == 0 {
+		mustSync = true
+	} else {
+		mustSync = false
+	}
+
+	storageConf := StorageConf{StoragePath: *storagePath, RestoreOnStartUp: *restoreOnStartUp, MustSync: mustSync, StoreInterval: *storeInterval}
+	return NewAppConfig(*host, storageConf)
 }
