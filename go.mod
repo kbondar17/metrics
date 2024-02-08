@@ -1,12 +1,15 @@
 module metrics
 
-go 1.21.2
+go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-resty/resty/v2 v2.11.0
+	github.com/google/uuid v1.6.0
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/mock v0.4.0
+	go.uber.org/zap v1.26.0
 )
 
 require (
@@ -15,6 +18,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elazarl/goproxy v0.0.0-20231117061959-7cc037d33fb5 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gin-contrib/gzip v0.0.6 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -32,6 +36,7 @@ require (
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/net v0.19.0 // indirect

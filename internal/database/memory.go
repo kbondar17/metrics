@@ -9,12 +9,36 @@ import (
 
 type MemStorage struct {
 	GaugeData map[string]float64
-	CountData map[string]int
+	CountData map[string]int64
 	mu        sync.RWMutex
 }
 
 func NewMemStorage() *MemStorage {
-	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int)}
+	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int64)}
+}
+
+func (ms *MemStorage) GetAllMetrics() []models.UpdateMetricsModel {
+	var AllMetrics []models.UpdateMetricsModel
+
+	for metricName := range ms.GaugeData {
+		val, err := ms.GetGaugeMetricValueByName(metricName, models.GaugeType)
+		if err != nil {
+			log.Println("failed to get metric by name: ", err)
+			continue
+		}
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: &val, MType: string(models.GaugeType)})
+	}
+
+	for metricName := range ms.CountData {
+		val, err := ms.GetCountMetricValueByName(metricName)
+		if err != nil {
+			log.Println("failed to get metric by name: ", err)
+			continue
+		}
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &val, MType: string(models.CounterType)})
+	}
+
+	return AllMetrics
 }
 
 func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
@@ -48,7 +72,7 @@ func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.Metric
 	}
 }
 
-func (ms *MemStorage) GetCountMetricValueByName(name string) (int, error) {
+func (ms *MemStorage) GetCountMetricValueByName(name string) (int64, error) {
 	ms.mu.RLock()
 	val, ok := ms.CountData[name]
 	ms.mu.RUnlock()
@@ -72,9 +96,8 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 	}
 }
 
-func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}) error {
+func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {
 	log.Println("updating metric", name, metricType, value)
-
 	switch metricType {
 	case models.GaugeType:
 		val, ok := value.(float64)
@@ -84,15 +107,24 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Lock()
 		ms.GaugeData[name] = val
 		ms.mu.Unlock()
+		if syncStorage {
+			log.Println("saving metric to file: ", name, val)
+			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val})
+		}
+
 		return nil
 	case models.CounterType:
-		val, ok := value.(int)
+		val, ok := value.(int64)
 		if !ok {
 			return er.ErrParse
 		}
 		ms.mu.Lock()
 		ms.CountData[name] += val
 		ms.mu.Unlock()
+		if syncStorage {
+			log.Println("saving metric to file: ", name, val)
+			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val})
+		}
 		return nil
 	default:
 		log.Println("Error: unknown metric type", metricType, name)

@@ -1,9 +1,13 @@
 package routers
 
 import (
+	"bytes"
+	"io"
 	"log"
 	er "metrics/internal/errors"
 
+	"encoding/json"
+	logger "metrics/internal/logger"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
 	"net/http"
@@ -17,11 +21,13 @@ func registerUpdateCounterRoutes(rg *gin.RouterGroup, repository repo.MetricsCRU
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
 		name := c.Params.ByName("name")
-		value, err := strconv.Atoi(c.Params.ByName("value"))
+		value, err := strconv.ParseInt(c.Params.ByName("value"), 10, 64)
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
-		err = repository.UpdateMetric(name, models.CounterType, value)
+
+		err = repository.UpdateMetric(name, models.CounterType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
@@ -51,7 +57,7 @@ func registerUpdateGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDe
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		err = repository.UpdateMetric(name, models.GaugeType, value)
+		err = repository.UpdateMetric(name, models.GaugeType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
 		}
@@ -99,22 +105,110 @@ func registerGetGaugeRoutes(rg *gin.RouterGroup, repository repo.MetricsCRUDer, 
 
 }
 
-func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
-	r := gin.Default()
+func registerGetValueRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUDer) {
+	rg.POST("/", func(c *gin.Context) {
+		var metric models.UpdateMetricsModel
+		var buf bytes.Buffer
+
+		// читаем тело запроса
+		_, err := buf.ReadFrom(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		}
+
+		// десериализуем JSON
+		if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse body"})
+			return
+		}
+
+		if metric.MType == string(models.GaugeType) {
+			value, err := repository.GetGaugeMetricValueByName(metric.ID, models.GaugeType)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
+				return
+			}
+			c.Header("Content-Type", "application/json")
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
+			return
+		}
+		if metric.MType == string(models.CounterType) {
+			value, err := repository.GetCountMetricValueByName(metric.ID)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"metric name": metric.ID, "error": "metric not found"})
+				return
+			}
+			value64 := int64(value)
+			c.Header("Content-Type", "application/json")
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: &value64})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown metric type"})
+	})
+}
+
+func registerUpdateRouteViaPost(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStorage bool, storagePath string) {
+
+	rg.POST("/", func(c *gin.Context) {
+		var metric models.UpdateMetricsModel
+
+		var buf bytes.Buffer
+
+		// читаем тело запроса
+		_, err := buf.ReadFrom(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		}
+
+		// десериализуем JSON
+		if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse	body"})
+			return
+		}
+
+		if metric.MType == string(models.GaugeType) {
+			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value, syncStorage, storagePath)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
+			return
+		}
+		if metric.MType == string(models.CounterType) {
+			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta, syncStorage, storagePath)
+			if err == er.ErrorNotFound {
+				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
+			}
+			return
+		}
+
+		c.JSON(200, metric)
+
+	})
+
+}
+
+func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *logger.AppLogger, syncStorage bool, storagePath string) *gin.Engine {
+	r := gin.New()
+	r.Use(RequestLogger(logger))
+	r.Use(CompressionMiddleware())
+	r.Use(DeCompressionMiddleware())
 
 	r.POST("/echo", func(c *gin.Context) {
-		//parse body and send it back
-		var body interface{}
-		c.BindJSON(&body)
-		body.(map[string]interface{})["message"] = "from server"
-		c.JSON(200, body)
-
+		log.Println("body:: ", c.Request.Body)
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Failed to read body")
+			return
+		}
+		c.Data(http.StatusOK, "text/plain", bodyBytes)
 	})
 
 	r.LoadHTMLFiles("templates/metrics.html")
 
 	r.GET("/", func(c *gin.Context) {
 		metrics := repository.GetAllMetrics()
+		log.Println("metrics:", metrics)
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})
@@ -122,15 +216,21 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 	})
 
 	updateGroup := r.Group("/update")
+	registerUpdateRouteViaPost(updateGroup, repository, syncStorage, storagePath)
+
 	registerUpdateGaugeRoutes(updateGroup.Group("/gauge"), repository, models.GaugeType)
 	registerUpdateCounterRoutes(updateGroup.Group("/counter"), repository, models.CounterType)
 
 	getGroup := r.Group("/value")
+	registerGetValueRouteViaPost(getGroup, repository)
+
 	registerGetGaugeRoutes(getGroup.Group("/gauge"), repository, models.GaugeType)
 	registerGetCountRoutes(getGroup.Group("/counter"), repository, models.CounterType)
 
 	r.GET("/ping", func(c *gin.Context) {
+		// panic("test")
 		c.String(http.StatusOK, "pong")
+
 	})
 
 	r.NoRoute(func(c *gin.Context) {
@@ -138,5 +238,4 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer) *gin.Engine {
 	})
 
 	return r
-
 }

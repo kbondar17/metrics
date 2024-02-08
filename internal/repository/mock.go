@@ -54,10 +54,10 @@ func (mr *MockMetricsCRUDerMockRecorder) Create(metricName, metricType any) *gom
 }
 
 // GetAllMetrics mocks base method.
-func (m *MockMetricsCRUDer) GetAllMetrics() []models.MetricResponseModel {
+func (m *MockMetricsCRUDer) GetAllMetrics() []models.UpdateMetricsModel {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMetrics")
-	ret0, _ := ret[0].([]models.MetricResponseModel)
+	ret0, _ := ret[0].([]models.UpdateMetricsModel)
 	return ret0
 }
 
@@ -68,10 +68,10 @@ func (mr *MockMetricsCRUDerMockRecorder) GetAllMetrics() *gomock.Call {
 }
 
 // GetCountMetricValueByName mocks base method.
-func (m *MockMetricsCRUDer) GetCountMetricValueByName(name string) (int, error) {
+func (m *MockMetricsCRUDer) GetCountMetricValueByName(name string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCountMetricValueByName", name)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -98,17 +98,17 @@ func (mr *MockMetricsCRUDerMockRecorder) GetGaugeMetricValueByName(name, mType a
 }
 
 // UpdateMetric mocks base method.
-func (m *MockMetricsCRUDer) UpdateMetric(name string, metrciType models.MetricType, value any) error {
+func (m *MockMetricsCRUDer) UpdateMetric(name string, metrciType models.MetricType, value any, syncStorage bool, storagePath string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value)
+	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value, syncStorage, storagePath)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMetric indicates an expected call of UpdateMetric.
-func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value any) *gomock.Call {
+func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value, syncStorage, storagePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath)
 }
 
 // MockStorager is a mock of Storager interface.
@@ -163,11 +163,25 @@ func (mr *MockStoragerMockRecorder) Create(metricName, metricType any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockStorager)(nil).Create), metricName, metricType)
 }
 
+// GetAllMetrics mocks base method.
+func (m *MockStorager) GetAllMetrics() []models.UpdateMetricsModel {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllMetrics")
+	ret0, _ := ret[0].([]models.UpdateMetricsModel)
+	return ret0
+}
+
+// GetAllMetrics indicates an expected call of GetAllMetrics.
+func (mr *MockStoragerMockRecorder) GetAllMetrics() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMetrics", reflect.TypeOf((*MockStorager)(nil).GetAllMetrics))
+}
+
 // GetCountMetricValueByName mocks base method.
-func (m *MockStorager) GetCountMetricValueByName(name string) (int, error) {
+func (m *MockStorager) GetCountMetricValueByName(name string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCountMetricValueByName", name)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -194,15 +208,15 @@ func (mr *MockStoragerMockRecorder) GetGaugeMetricValueByName(name, mType any) *
 }
 
 // UpdateMetric mocks base method.
-func (m *MockStorager) UpdateMetric(name string, metrciType models.MetricType, value any) error {
+func (m *MockStorager) UpdateMetric(name string, metrciType models.MetricType, value any, syncStorage bool, storagePath string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value)
+	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value, syncStorage, storagePath)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMetric indicates an expected call of UpdateMetric.
-func (mr *MockStoragerMockRecorder) UpdateMetric(name, metrciType, value any) *gomock.Call {
+func (mr *MockStoragerMockRecorder) UpdateMetric(name, metrciType, value, syncStorage, storagePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMetric), name, metrciType, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath)
 }

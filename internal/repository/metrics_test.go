@@ -112,9 +112,11 @@ func TestMerticsRepo_Create(t *testing.T) {
 
 func TestMerticsRepo_UpdateMetric(t *testing.T) {
 	type args struct {
-		name       string
-		metrciType models.MetricType
-		value      interface{}
+		name        string
+		metrciType  models.MetricType
+		value       interface{}
+		syncStorage bool
+		storagePath string
 	}
 	tests := []struct {
 		name    string
@@ -123,13 +125,13 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 	}{
 		{
 			name:    "update existing metric",
-			args:    args{name: "existing_metric", metrciType: models.GaugeType, value: 1},
+			args:    args{name: "existing_metric", metrciType: models.GaugeType, value: 1, syncStorage: false, storagePath: "stub"},
 			wantErr: nil,
 		},
 
 		{
 			name:    "update not existing metric",
-			args:    args{name: "not_existing_metric", metrciType: models.GaugeType, value: 1},
+			args:    args{name: "not_existing_metric", metrciType: models.GaugeType, value: 1, syncStorage: false, storagePath: "stub"},
 			wantErr: nil,
 		},
 	}
@@ -138,14 +140,14 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStorage := setUpMockStorage(ctrl)
-	mockStorage.EXPECT().UpdateMetric(gomock.Eq("existing_metric"), models.GaugeType, 1).Return(nil).AnyTimes()
-	mockStorage.EXPECT().UpdateMetric(gomock.Eq("not_existing_metric"), models.GaugeType, 1).Return(nil).AnyTimes()
+	mockStorage.EXPECT().UpdateMetric(gomock.Eq("existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
+	mockStorage.EXPECT().UpdateMetric(gomock.Eq("not_existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
 
 	repo := NewMerticsRepo(mockStorage)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value); err != nil && err != tt.wantErr {
+			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value, tt.args.syncStorage, tt.args.storagePath); err != nil && err != tt.wantErr {
 				t.Errorf("MerticsRepo.UpdateMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

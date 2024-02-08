@@ -3,6 +3,7 @@ package routers
 import (
 	"io"
 	er "metrics/internal/errors"
+	logger "metrics/internal/logger"
 	"metrics/internal/models"
 	"metrics/internal/repository"
 	"net/http"
@@ -18,7 +19,9 @@ func TestBase(t *testing.T) {
 
 	mockStorage := repository.NewMockStorager(ctrl)
 	mockRepo := repository.NewMerticsRepo(mockStorage)
-	router := RegisterMerticsRoutes(mockRepo)
+
+	logger := logger.NewAppLogger()
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/ping", nil)
@@ -41,8 +44,8 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
-
-	router := RegisterMerticsRoutes(mockRepo)
+	logger := logger.NewAppLogger()
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	tests := []struct {
 		name           string
@@ -87,19 +90,22 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 
 func TestUpdateGaugeMetric(t *testing.T) {
 	type args struct {
-		url    string
-		method string
-		body   io.Reader
+		url         string
+		method      string
+		body        io.Reader
+		syncStorage bool
+		storagePath string
 	}
 
 	ctrl := gomock.NewController(t)
 
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1).Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1).Return(er.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
 
-	router := RegisterMerticsRoutes(mockRepo)
+	logger := logger.NewAppLogger()
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "")
 
 	tests := []struct {
 		name           string
