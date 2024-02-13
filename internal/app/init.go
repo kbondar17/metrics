@@ -36,12 +36,12 @@ func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 	for {
 		metrics, err := a.repository.GetAllMetrics()
 		if err != nil {
-			a.logger.Infof("failed to get metrics: %v", err)
+			a.logger.Errorf("failed to get metrics: %w", err)
 		}
 		for _, metric := range metrics {
 			err := db.SaveMetric(fname, metric)
 			if err != nil {
-				a.logger.Infof("failed to save metric: %v", err)
+				a.logger.Errorf("failed to save metric: %w", err)
 			}
 		}
 		time.Sleep(time.Duration(storeInterval) * time.Second)
@@ -55,7 +55,7 @@ func addDefaultMetrics(repository repo.MetricsCRUDer, logger *zap.SugaredLogger)
 		for _, name := range metricArray {
 			err := repository.Create(name, metricType, logger)
 			if err != nil && !errors.Is(err, er.ErrAlreadyExists) {
-				logger.Infow("failed to create metric: %v", err)
+				logger.Errorf("failed to create metric: %w", err)
 			}
 		}
 	}
@@ -88,7 +88,7 @@ func NewApp(conf *AppConfig) *App {
 	if conf.StorageConfig.RestoreOnStartUp {
 		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath)
 		if err != nil {
-			logger.Infof("failed to load metrics: %v", err)
+			logger.Errorf("failed to load metrics: %w", err)
 		}
 		logger.Infof("restored metrics: %v", restoredMetrics)
 		for _, metric := range restoredMetrics {
