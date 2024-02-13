@@ -63,13 +63,13 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 
 	config, err := pgx.ParseDSN(dns)
 	if err != nil {
-		logger.Errorf("unable to parse dsn: %v", err)
+		logger.Errorf("unable to parse dns: %v", err)
 		return PostgresStorage{}, err
 	}
 
 	conn, err := pgx.Connect(config)
 	if err != nil {
-		logger.Errorf("unable to connect to db: %v", err)
+		logger.Errorf("unable to connect to db: %v, dns %v", err, dns)
 		return PostgresStorage{}, err
 	}
 	err = initDB(conn)
