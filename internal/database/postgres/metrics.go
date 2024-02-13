@@ -60,18 +60,12 @@ func initDB(conn *pgx.Conn) error {
 }
 
 func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage, error) {
+
 	config, err := pgx.ParseDSN(dns)
 	if err != nil {
+		logger.Errorf("unable to parse dsn: %v", err)
 		return PostgresStorage{}, err
 	}
-	// config := pgx.ConnConfig{
-	// 	Host:     "localhost",
-	// 	Port:     5432,
-	// 	Database: "yandex",
-	// 	User:     "telematica_user",
-	// 	Password: "telematica_pass",
-	// }
-	// TODO: может сделать pgxpool ??
 
 	conn, err := pgx.Connect(config)
 	if err != nil {
@@ -85,6 +79,7 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 	}
 	retrErr := appErrors.NewRetryableError()
 	return PostgresStorage{Conn: conn, CanRetrier: *retrErr}, nil
+
 }
 
 func errIsRetriable(err error) bool {
