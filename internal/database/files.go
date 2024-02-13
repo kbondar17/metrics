@@ -2,14 +2,13 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"metrics/internal/models"
 	"os"
 	"strings"
 	"sync"
 )
-
-var fileRMutex = &sync.RWMutex{}
 
 func createFile(fname string) error {
 	file, err := os.OpenFile(fname, os.O_CREATE|os.O_EXCL, 0666)
@@ -25,6 +24,8 @@ func createFile(fname string) error {
 }
 
 func Load(fname string) ([]models.UpdateMetricsModel, error) {
+	var fileRMutex = &sync.RWMutex{}
+
 	fileRMutex.RLock()
 	defer fileRMutex.RUnlock()
 
@@ -56,14 +57,13 @@ func Load(fname string) ([]models.UpdateMetricsModel, error) {
 	return result, nil
 }
 
-var fileMutex = &sync.Mutex{}
-
 // SaveMetric saves metric to file
 func SaveMetric(fname string, data models.UpdateMetricsModel) error {
+	var fileMutex = &sync.Mutex{}
+
 	existingData, err := Load(fname)
 	if err != nil {
-		log.Println("error loading file: ", fname, err)
-		return err
+		return fmt.Errorf("error loading file %s: %w", fname, err)
 	}
 	// remove the metric to be updated
 	for i, metric := range existingData {
@@ -76,17 +76,15 @@ func SaveMetric(fname string, data models.UpdateMetricsModel) error {
 
 	jsonData, err := json.Marshal(existingData)
 	if err != nil {
-		log.Println("error marshalling data: ", err)
-		return err
+		return fmt.Errorf("error marshalling data: %w", err)
 	}
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
 
 	err = os.WriteFile(fname, jsonData, 0666)
 	if err != nil {
-		log.Println("error writing to file: ", err)
-		return err
+		return fmt.Errorf("error writing to file: %w", err)
 	}
-	log.Println("saved metric to ", fname)
+	// log.Println("saved metric to ", fname)
 	return nil
 }

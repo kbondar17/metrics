@@ -17,10 +17,16 @@ import (
 func TestBase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockStorage := repository.NewMockStorager(ctrl)
-	mockRepo := repository.NewMerticsRepo(mockStorage)
+	// mockStorage := repository.NewMockStorager(ctrl)
+	// mockRepo := repository.NewMerticsRepo(mockStorage)
+	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
 
-	logger := logger.NewAppLogger()
+	mockRepo.EXPECT().Ping().Return(nil).AnyTimes()
+
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
 	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	w := httptest.NewRecorder()
@@ -28,7 +34,7 @@ func TestBase(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "pong", w.Body.String())
+	assert.Equal(t, "\"pong\"", w.Body.String())
 }
 
 func TestGetGaugeMetricValueByName(t *testing.T) {
@@ -44,7 +50,10 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
-	logger := logger.NewAppLogger()
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
 	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
 
 	tests := []struct {
@@ -100,11 +109,14 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
 
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "", logger).Return(nil).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "", logger).Return(er.ErrorNotFound).AnyTimes()
 
-	logger := logger.NewAppLogger()
 	router := RegisterMerticsRoutes(mockRepo, logger, false, "")
 
 	tests := []struct {

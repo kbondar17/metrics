@@ -1,6 +1,7 @@
 package agent
 
 import (
+	_ "encoding/json"
 	"fmt"
 	"log"
 	"math/rand"

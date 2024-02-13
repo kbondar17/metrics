@@ -11,6 +11,7 @@ type StorageConf struct {
 	RestoreOnStartUp bool
 	MustSync         bool
 	StoreInterval    int
+	DBDNS            string
 }
 
 type AppConfig struct {
@@ -24,14 +25,14 @@ func NewAppConfig(host string, StorageConfig StorageConf) *AppConfig {
 
 func NewAppConfigFromEnv() *AppConfig {
 	defaultHost := "localhost:8080"
-	host := flag.String("a", defaultHost, "Адрес HTTP-сервера. По умолчанию localhost:8080")
+	host := flag.String("a", defaultHost, "HTTP server address. Default is localhost:8080")
 	if ennvHost := os.Getenv("ADDRESS"); ennvHost != "" {
 		host = &ennvHost
 	}
 
 	defaultStoreInteval := 300
 
-	storeInterval := flag.Int("i", defaultStoreInteval, "Интервал сохранения метрик в БД. По умолчанию 300 секунд")
+	storeInterval := flag.Int("i", defaultStoreInteval, "Interval for saving metrics to the database. Default is 300 seconds")
 	if ennvStoreInterval := os.Getenv("STORE_INTERVAL"); ennvStoreInterval != "" {
 		val, err := strconv.Atoi(ennvStoreInterval)
 		if err != nil {
@@ -42,13 +43,13 @@ func NewAppConfigFromEnv() *AppConfig {
 
 	defaultStoragePath := "/tmp/metrics-db.json"
 
-	storagePath := flag.String("f", defaultStoragePath, "Полное имя файла, куда сохраняются текущие значения. По умолчанию /tmp/metrics-db.json, пустое значение отключает функцию записи на диск")
+	storagePath := flag.String("f", defaultStoragePath, "Full file name where current values are saved. Default is /tmp/metrics-db.json, empty value disables disk writing function")
 	if ennvStoragePath := os.Getenv("FILE_STORAGE_PATH"); ennvStoragePath != "" {
 		storagePath = &ennvStoragePath
 	}
 
 	defaultRetorePolicy := true
-	restoreOnStartUp := flag.Bool("r", defaultRetorePolicy, "Восстанавливать ли предыдущее состояние из файла. По умолчанию true")
+	restoreOnStartUp := flag.Bool("r", defaultRetorePolicy, "Whether to restore the previous state from a file. Default is true")
 	if ennvRestorePolicy := os.Getenv("RESTORE"); ennvRestorePolicy != "" {
 		val, err := strconv.ParseBool(ennvRestorePolicy)
 		if err != nil {
@@ -56,6 +57,14 @@ func NewAppConfigFromEnv() *AppConfig {
 		}
 		restoreOnStartUp = &val
 	}
+
+	defaultDBDNS := ""
+	dbDNS := flag.String("d", defaultDBDNS, "Database dns. Default is empty value.")
+
+	if envDBDNS := os.Getenv("DATABASE_DSN"); envDBDNS != "" {
+		dbDNS = &envDBDNS
+	}
+
 	flag.Parse()
 
 	var mustSync bool
@@ -66,6 +75,6 @@ func NewAppConfigFromEnv() *AppConfig {
 		mustSync = false
 	}
 
-	storageConf := StorageConf{StoragePath: *storagePath, RestoreOnStartUp: *restoreOnStartUp, MustSync: mustSync, StoreInterval: *storeInterval}
+	storageConf := StorageConf{StoragePath: *storagePath, RestoreOnStartUp: *restoreOnStartUp, MustSync: mustSync, StoreInterval: *storeInterval, DBDNS: *dbDNS}
 	return NewAppConfig(*host, storageConf)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "encoding/json"
 	"metrics/internal/app"
 )
 
