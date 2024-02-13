@@ -75,7 +75,7 @@ func NewApp(conf *AppConfig) *App {
 		storage = memory.NewMemStorage()
 		logger.Info("using memory storage")
 	} else {
-		storage, err = postgres.NewPostgresStorage(conf.StorageConfig.DBDNS)
+		storage, err = postgres.NewPostgresStorage(conf.StorageConfig.DBDNS, logger)
 		if err != nil {
 			logger.Infoln("failed to create storage: %v", err)
 		} else {
