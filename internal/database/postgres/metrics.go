@@ -67,7 +67,7 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 		return PostgresStorage{}, err
 	}
 
-	logger.Infof("connecting to db: %v", config)
+	logger.Infoln("connecting to db with config: ", config)
 
 	conn, err := pgx.Connect(config)
 	if err != nil {
