@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
+	"go.uber.org/zap"
 )
 
 type PostgresStorage struct {
@@ -58,12 +59,11 @@ func initDB(conn *pgx.Conn) error {
 
 }
 
-func NewPostgresStorage(dns string) (PostgresStorage, error) {
+func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage, error) {
 	config, err := pgx.ParseDSN(dns)
 	if err != nil {
 		return PostgresStorage{}, err
 	}
-
 	// config := pgx.ConnConfig{
 	// 	Host:     "localhost",
 	// 	Port:     5432,
@@ -75,6 +75,7 @@ func NewPostgresStorage(dns string) (PostgresStorage, error) {
 
 	conn, err := pgx.Connect(config)
 	if err != nil {
+		logger.Errorf("unable to connect to db: %v", err)
 		return PostgresStorage{}, err
 	}
 	err = initDB(conn)
