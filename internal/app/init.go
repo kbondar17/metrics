@@ -86,7 +86,7 @@ func NewApp(conf *AppConfig) *App {
 	repository := repo.NewMerticsRepo(storage)
 
 	if conf.StorageConfig.RestoreOnStartUp {
-		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath)
+		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath, logger)
 		if err != nil {
 			logger.Errorf("failed to load metrics: %w", err)
 		}
