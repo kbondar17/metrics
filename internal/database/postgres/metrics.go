@@ -73,12 +73,20 @@ func initDB(conn *sql.DB) error {
 	_, err := conn.Exec(stmt)
 
 	if err != nil {
-		var pgErr pgx.PgError
+		fmt.Println("err:::", err, "type:::", reflect.TypeOf(err))
+		var pgErr *pgx.PgError
 
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.DuplicateTable {
 			log.Println("Table metric already exists")
 			return nil
 		}
+		var pgErr2 *pgconn.PgError
+
+		if errors.Is(err, pgErr2) {
+			log.Println("Table metric already exists")
+			return nil
+		}
+
 		return err
 	}
 	log.Println("Table metric created")
