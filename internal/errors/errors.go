@@ -56,19 +56,8 @@ func (e *RetryableError) SleepAndIncrement() {
 }
 
 func (e *RetryableError) CanRetry() bool {
-	fmt.Println("retrying count: ", e.Count, "limit: ", e.Limit)
 	return e.Count < e.Limit
 }
-
-// func (e *RetryableError) CheckIfSameError(err error) bool {
-// 	// get e error type
-// 	errType := fmt.Sprintf("%T", e.Err)
-// 	// get err error type
-// 	errType2 := fmt.Sprintf("%T", err)
-// 	// compare the types
-// 	return errType == errType2
-
-// }
 
 // RetryWrapper excecutes the function f and retries it if it returns the error defined in retrErr
 func RetryWrapper(f func() error, errIsRetriable func(error) bool, retrErr RetryableError) error {

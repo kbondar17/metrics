@@ -58,7 +58,6 @@ func (repo MerticsRepo) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
 		return nil, fmt.Errorf("failed to get all metrics: %w", err)
 	}
 
-	log.Println("all metrics: ", metrics)
 	return metrics, err
 }
 
