@@ -104,9 +104,9 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 
 	// err = initDB(conn)
 
-	if err != nil {
-		return PostgresStorage{}, err
-	}
+	// if err != nil {
+	// 	return PostgresStorage{}, err
+	// }
 	retrErr := appErrors.NewRetryableError()
 	return PostgresStorage{Conn: conn, CanRetrier: *retrErr}, nil
 }
