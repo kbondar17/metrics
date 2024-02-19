@@ -67,14 +67,14 @@ func Update(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStorage bool
 		}
 
 		if metric.MType == string(models.GaugeType) {
-			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value, syncStorage, storagePath, logger)
+			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value, syncStorage, storagePath)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
 			return
 		}
 		if metric.MType == string(models.CounterType) {
-			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta, syncStorage, storagePath, logger)
+			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta, syncStorage, storagePath)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}

@@ -41,9 +41,7 @@ func (e *RetryableError) Error() string {
 }
 
 func (e *RetryableError) Sleep() {
-	fmt.Println("sleeping for: ", e.SleepingTime[e.Count-1])
 	time.Sleep(time.Duration(e.SleepingTime[e.Count-1]) * time.Second)
-
 }
 
 func (e *RetryableError) Increment() {

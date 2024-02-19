@@ -30,7 +30,7 @@ func GetGauge(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType mod
 		metricName := c.Params.ByName("name")
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
 		if err == er.ErrorNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName, "error": "metric not found"})
+			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName})
 			return
 		}
 		if err != nil {

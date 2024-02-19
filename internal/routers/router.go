@@ -17,8 +17,8 @@ import (
 
 func addMiddleware(r *gin.Engine, logger *zap.SugaredLogger) {
 	r.Use(RequestLogger(logger))
-	r.Use(DeCompressionMiddleware())
-	r.Use(CompressionMiddleware())
+	r.Use(DeCompressionMiddleware(logger))
+	r.Use(CompressionMiddleware(logger))
 }
 
 func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLogger, syncStorage bool, storagePath string) *gin.Engine {

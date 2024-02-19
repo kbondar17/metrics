@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -53,7 +52,7 @@ func addDefaultMetrics(repository repo.MetricsCRUDer, logger *zap.SugaredLogger)
 
 	for metricType, metricArray := range m.MetricsDict {
 		for _, name := range metricArray {
-			err := repository.Create(name, metricType, logger)
+			err := repository.Create(name, metricType)
 			if err != nil && !errors.Is(err, er.ErrAlreadyExists) {
 				logger.Errorf("failed to create metric: %w", err)
 			}
@@ -63,12 +62,14 @@ func addDefaultMetrics(repository repo.MetricsCRUDer, logger *zap.SugaredLogger)
 }
 
 func NewApp(conf *AppConfig) *App {
-	fmt.Println("!!!APP_CONFIG::", conf)
 
 	logger, err := logger.NewAppLogger()
+
 	if err != nil {
 		log.Fatalf("failed to create logger: %v", err)
 	}
+
+	logger.Infof("config: %v", conf)
 
 	var storage repo.Storager
 	if conf.StorageConfig.DBDNS == "" {
@@ -83,7 +84,7 @@ func NewApp(conf *AppConfig) *App {
 		}
 	}
 
-	repository := repo.NewMerticsRepo(storage)
+	repository := repo.NewMerticsRepo(storage, logger)
 
 	if conf.StorageConfig.RestoreOnStartUp {
 		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath, logger)
@@ -92,13 +93,13 @@ func NewApp(conf *AppConfig) *App {
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "", logger)
+				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "", logger)
+				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}

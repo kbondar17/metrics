@@ -1,7 +1,6 @@
 package post
 
 import (
-	"log"
 	er "metrics/internal/errors"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
@@ -23,13 +22,13 @@ func UpdateCounter(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricTyp
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		err = repository.UpdateMetric(name, models.CounterType, value, false, "", logger)
+		err = repository.UpdateMetric(name, models.CounterType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
 		}
 		if err != nil {
-			logger.Infow("failed to update metric", "name", name, "value", value, "error", err)
+			logger.Infof("error updating metric: %v", err)
 			c.Status(http.StatusBadRequest)
 		}
 		c.Status(http.StatusOK)
@@ -49,17 +48,17 @@ func UpdateGauge(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType 
 		value, err := strconv.ParseFloat(c.Params.ByName("value"), 64)
 
 		if err != nil {
-			log.Println("error parsing path params", err)
+			logger.Infof("error parsing path params: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		err = repository.UpdateMetric(name, models.GaugeType, value, false, "", logger)
+		err = repository.UpdateMetric(name, models.GaugeType, value, false, "")
 		if err == er.ErrorNotFound {
-			c.JSON(http.StatusBadRequest, gin.H{"metric name": name, "error": "metric not found"})
+			c.JSON(http.StatusBadRequest, gin.H{"metric name": name})
 		}
 		if err != nil {
-			log.Println("error updating metric :: ", err)
-			c.Status(http.StatusBadRequest)
+			logger.Infof("error updating metric: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		c.Status(http.StatusOK)
 	})

@@ -4,12 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	db "metrics/internal/database"
 	appErrors "metrics/internal/errors"
 	"metrics/internal/models"
 	"net"
-	"reflect"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -22,9 +20,10 @@ import (
 type PostgresStorage struct {
 	Conn       *sql.DB
 	CanRetrier appErrors.RetryableError
+	logger     *zap.SugaredLogger
 }
 
-func initDB(conn *sql.DB) error {
+func initDB(conn *sql.DB, logger *zap.SugaredLogger) error {
 	stmt := `CREATE TABLE metric (
 		id TEXT PRIMARY KEY,
 		mtype TEXT NOT NULL,
@@ -42,13 +41,13 @@ func initDB(conn *sql.DB) error {
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) {
-			log.Println("Table metric already exists")
+			logger.Info("Table metric already exists")
 			return nil
 		}
 
 		return err
 	}
-	log.Println("Table metric created")
+	logger.Infof("Table metric created")
 	return nil
 }
 
@@ -61,13 +60,13 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 		return PostgresStorage{}, err
 	}
 
-	err = initDB(conn)
+	err = initDB(conn, logger)
 
 	if err != nil {
 		return PostgresStorage{}, err
 	}
 	retrErr := appErrors.NewRetryableError()
-	return PostgresStorage{Conn: conn, CanRetrier: *retrErr}, nil
+	return PostgresStorage{Conn: conn, CanRetrier: *retrErr, logger: logger}, nil
 }
 
 func errIsRetriable(err error) bool {
@@ -97,10 +96,7 @@ func (p PostgresStorage) Ping() error {
 		err := row.Scan(&result)
 
 		if err != nil {
-			fmt.Println("err type:::", reflect.TypeOf(err))
-			return err
-		} else {
-			fmt.Println("Pong")
+			return fmt.Errorf("unable to ping db: %w", err)
 		}
 		return nil
 	}
@@ -294,7 +290,7 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 		return fmt.Errorf("unable to update metric: %w", err)
 	}
 	if syncStorage {
-		log.Println("saving metric to file: ", metric)
+		p.logger.Infoln("saving metric to file: ", metric)
 		err := db.SaveMetric(storagePath, metric)
 		if err != nil {
 			return fmt.Errorf("unable to save metric to file: %w", err)
