@@ -13,50 +13,16 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"github.com/jackc/pgx"
 	"go.uber.org/zap"
 )
 
-// type PostgresStorage struct {
-// 	Conn       *pgx.Conn
-// 	CanRetrier appErrors.RetryableError
-// 	// Dns string
-// }
-
 type PostgresStorage struct {
 	Conn       *sql.DB
 	CanRetrier appErrors.RetryableError
-	// Dns string
 }
-
-// func initDB(conn *pgx.Conn) error {
-// 	stmt := `CREATE TABLE metric (
-// 		id TEXT PRIMARY KEY,
-// 		mtype TEXT NOT NULL,
-// 		delta BIGINT,
-// 		value DOUBLE PRECISION,
-// 		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-// 		updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-// 	);
-// 	CREATE INDEX idx_update_metrics_model_id ON metric (id);
-// 	`
-
-// 	_, err := conn.Exec(stmt)
-
-// 	if err != nil {
-// 		var pgErr pgx.PgError
-
-// 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.DuplicateTable {
-// 			log.Println("Table metric already exists")
-// 			return nil
-// 		}
-// 		return err
-// 	}
-// 	log.Println("Table metric created")
-// 	return nil
-// }
 
 func initDB(conn *sql.DB) error {
 	stmt := `CREATE TABLE metric (
@@ -73,16 +39,9 @@ func initDB(conn *sql.DB) error {
 	_, err := conn.Exec(stmt)
 
 	if err != nil {
-		fmt.Println("err:::", err, "type:::", reflect.TypeOf(err))
-		var pgErr *pgx.PgError
+		var pgErr *pgconn.PgError
 
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.DuplicateTable {
-			log.Println("Table metric already exists")
-			return nil
-		}
-		var pgErr2 *pgconn.PgError
-
-		if errors.Is(err, pgErr2) {
+		if errors.As(err, &pgErr) {
 			log.Println("Table metric already exists")
 			return nil
 		}
@@ -102,39 +61,14 @@ func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage,
 		return PostgresStorage{}, err
 	}
 
-	// err = initDB(conn)
+	err = initDB(conn)
 
-	// if err != nil {
-	// 	return PostgresStorage{}, err
-	// }
+	if err != nil {
+		return PostgresStorage{}, err
+	}
 	retrErr := appErrors.NewRetryableError()
 	return PostgresStorage{Conn: conn, CanRetrier: *retrErr}, nil
 }
-
-// func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage, error) {
-
-// 	config, err := pgx.ParseDSN(dns)
-// 	if err != nil {
-// 		logger.Errorf("unable to parse dns: %v", err)
-// 		return PostgresStorage{}, err
-// 	}
-
-// 		logger.Infoln("connecting to db with config: ", config)
-
-// 	conn, err := pgx.Connect(config)
-// 	if err != nil {
-// 		logger.Errorf("unable to connect to db: %v, dns %v", err, dns)
-// 		return PostgresStorage{}, err
-// 	}
-// 	err = initDB(conn)
-
-// 	if err != nil {
-// 		return PostgresStorage{}, err
-// 	}
-// 	retrErr := appErrors.NewRetryableError()
-// 	return PostgresStorage{Conn: conn, CanRetrier: *retrErr}, nil
-
-// }
 
 func errIsRetriable(err error) bool {
 	var pgErr *pgconn.PgError
@@ -151,6 +85,10 @@ func errIsRetriable(err error) bool {
 }
 
 func (p PostgresStorage) Ping() error {
+	if p.Conn == nil {
+		return errors.New("database connection is not initialized")
+	}
+
 	inner := func() error {
 		stmt := "select 1"
 
@@ -216,6 +154,7 @@ func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsMode
 
 }
 
+// CheckIfMetricExists is a stub for backward compatibility
 func (p PostgresStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
 	return true, nil
 	// stmt := func() (interface{}, error) {
@@ -284,7 +223,7 @@ func (p PostgresStorage) GetCountMetricValueByName(name string) (int64, error) {
 func (p PostgresStorage) Create(metricName string, metricType models.MetricType) error {
 	stmt := func(tx *sql.Tx) error {
 
-		// тут проблема потому создает с пустым значением
+		// FIXME: тут проблема потому создает с пустым значением
 		sql := "INSERT INTO metric (id, mtype) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING;"
 		_, err := tx.Exec(sql, metricName, metricType)
 		return err
@@ -318,22 +257,15 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 	        VALUES ($1, $2, $3, $4)
 	        ON CONFLICT (id) DO UPDATE SET delta = $3, value = $4, updated_at = now()`
 
-		// _, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
-		_, err := tx.Exec(sql, metric.ID, metric.MType, 11, 22.22)
-
+		_, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
 		return err
 
 	}
-	// transaction := func() error {
-	// 	return p.transactionWrapper(query)
-	// }
-	// err := appErrors.RetryWrapper(transaction, errIsRetriable, p.CanRetrier)
-	tx, err := p.Conn.Begin()
-	if err != nil {
-		return fmt.Errorf("unable to begin transaction: %w", err)
+	transaction := func() error {
+		return p.transactionWrapper(query)
 	}
-	err = query(tx)
-	// err := p.transactionWrapper(query)
+
+	err := appErrors.RetryWrapper(transaction, errIsRetriable, p.CanRetrier)
 
 	if err != nil {
 		return fmt.Errorf("unable to update metric: %w", err)
@@ -350,11 +282,12 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 }
 
 func (p PostgresStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
+	if p.Conn == nil {
+		return nil, errors.New("database connection is not initialized")
+	}
+
 	query := "SELECT id, mtype, value, delta FROM metric;"
 
-	// if err := p.Ping(); err != nil {
-	// 	return nil, fmt.Errorf("unable to ping db: %w", err)
-	// }
 	rows, err := p.Conn.Query(query)
 
 	if err != nil {

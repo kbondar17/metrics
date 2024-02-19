@@ -53,8 +53,11 @@ func (repo MerticsRepo) UpdateMultipleMetric(metrics []models.UpdateMetricsModel
 }
 
 func (repo MerticsRepo) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
-	// TODO: hanlde error
 	metrics, err := repo.Storage.GetAllMetrics()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all metrics: %w", err)
+	}
+
 	log.Println("all metrics: ", metrics)
 	return metrics, err
 }
