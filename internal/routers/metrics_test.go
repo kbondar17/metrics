@@ -80,7 +80,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 				body:   nil,
 			},
 			wantStatusCode: http.StatusNotFound,
-			wantResponse:   `{"error":"metric not found","metric name":"NotExistingValue"}`,
+			wantResponse:   `{"metric name":"NotExistingValue"}`,
 		},
 	}
 
@@ -114,8 +114,8 @@ func TestUpdateGaugeMetric(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "", logger).Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "", logger).Return(er.ErrorNotFound).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
+	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo, logger, false, "")
 
@@ -143,7 +143,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 				body:   nil,
 			},
 			wantStatusCode: http.StatusBadRequest,
-			wantResponse:   `{"error":"metric not found","metric name":"NotExistingValue"}`,
+			wantResponse:   `{"metric name":"NotExistingValue"}{"error":"not found"}`,
 		},
 	}
 

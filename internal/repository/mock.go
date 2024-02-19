@@ -14,7 +14,6 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
-	zap "go.uber.org/zap"
 )
 
 // MockMetricsCRUDer is a mock of MetricsCRUDer interface.
@@ -41,17 +40,17 @@ func (m *MockMetricsCRUDer) EXPECT() *MockMetricsCRUDerMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockMetricsCRUDer) Create(metricName string, metricType models.MetricType, logger *zap.SugaredLogger) error {
+func (m *MockMetricsCRUDer) Create(metricName string, metricType models.MetricType) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", metricName, metricType, logger)
+	ret := m.ctrl.Call(m, "Create", metricName, metricType)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockMetricsCRUDerMockRecorder) Create(metricName, metricType, logger any) *gomock.Call {
+func (mr *MockMetricsCRUDerMockRecorder) Create(metricName, metricType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockMetricsCRUDer)(nil).Create), metricName, metricType, logger)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockMetricsCRUDer)(nil).Create), metricName, metricType)
 }
 
 // GetAllMetrics mocks base method.
@@ -114,17 +113,17 @@ func (mr *MockMetricsCRUDerMockRecorder) Ping() *gomock.Call {
 }
 
 // UpdateMetric mocks base method.
-func (m *MockMetricsCRUDer) UpdateMetric(name string, metrciType models.MetricType, value any, syncStorage bool, storagePath string, logger *zap.SugaredLogger) error {
+func (m *MockMetricsCRUDer) UpdateMetric(name string, metrciType models.MetricType, value any, syncStorage bool, storagePath string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value, syncStorage, storagePath, logger)
+	ret := m.ctrl.Call(m, "UpdateMetric", name, metrciType, value, syncStorage, storagePath)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMetric indicates an expected call of UpdateMetric.
-func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value, syncStorage, storagePath, logger any) *gomock.Call {
+func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value, syncStorage, storagePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath, logger)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath)
 }
 
 // UpdateMultipleMetric mocks base method.

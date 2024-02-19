@@ -27,6 +27,10 @@ func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
 }
 
 func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
 
 	type args struct {
 		name  string
@@ -37,7 +41,7 @@ func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
 	defer ctrl.Finish()
 	mockStorage := setUpMockStorage(ctrl)
 
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	tests := []struct {
 		name    string
@@ -89,7 +93,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockStorage := setUpMockStorage(ctrl)
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	tests := []struct {
 		name    string
@@ -109,7 +113,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := repo.Create(tt.args.metricName, tt.args.metricType, logger); err != nil && !errors.Is(err, tt.wantErr) {
+			if err := repo.Create(tt.args.metricName, tt.args.metricType); err != nil && !errors.Is(err, tt.wantErr) {
 				t.Errorf("MerticsRepo.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -154,11 +158,11 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 	mockStorage.EXPECT().UpdateMetric(gomock.Eq("existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
 	mockStorage.EXPECT().UpdateMetric(gomock.Eq("not_existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
 
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value, tt.args.syncStorage, tt.args.storagePath, logger); err != nil && err != tt.wantErr {
+			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value, tt.args.syncStorage, tt.args.storagePath); err != nil && err != tt.wantErr {
 				t.Errorf("MerticsRepo.UpdateMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
