@@ -133,14 +133,28 @@ func (p PostgresStorage) transactionWrapper(f func(tx *sql.Tx) error) error {
 
 func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
 	query := func(tx *sql.Tx) error {
-		sql := "INSERT INTO metric (id, mtype, delta, value) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET delta = $3, value = $4, updated_at = now() ;"
+		sql := `INSERT INTO metric (id, mtype, delta, value) 
+		VALUES ($1, $2, $3, $4) 
+		ON CONFLICT (id) DO UPDATE 
+		SET 
+			delta = CASE 
+				WHEN metric.mtype = 'gauge' THEN EXCLUDED.delta
+				WHEN metric.mtype = 'counter' THEN metric.delta + EXCLUDED.delta
+			END,
+			value = $4, 
+			updated_at = now()`
+
 		for _, metric := range metrics {
 			_, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
 			if err != nil {
 				fmt.Println("err while updating:::", err)
 				return err
 			} else {
-				fmt.Println("udpated ok :: ", metric.ID, metric.MType, metric.Delta, metric.Value)
+				if metric.MType == string(models.CounterType) {
+					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Delta)
+				} else {
+					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Value)
+				}
 			}
 		}
 		return nil
@@ -215,6 +229,8 @@ func (p PostgresStorage) GetCountMetricValueByName(name string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to get metric value: %w", err)
 	}
+	fmt.Println("rawRes:::", rawRes)
+
 	return rawRes.(int64), nil
 
 }
@@ -253,9 +269,16 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 	}
 
 	query := func(tx *sql.Tx) error {
-		sql := `INSERT INTO metric (id, mtype, delta, value)
-	        VALUES ($1, $2, $3, $4)
-	        ON CONFLICT (id) DO UPDATE SET delta = $3, value = $4, updated_at = now()`
+		sql := `INSERT INTO metric (id, mtype, delta, value) 
+		VALUES ($1, $2, $3, $4) 
+		ON CONFLICT (id) DO UPDATE 
+		SET 
+			delta = CASE 
+				WHEN metric.mtype = 'gauge' THEN EXCLUDED.delta
+				WHEN metric.mtype = 'counter' THEN metric.delta + EXCLUDED.delta
+			END,
+			value = $4, 
+			updated_at = now()`
 
 		_, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
 		return err
