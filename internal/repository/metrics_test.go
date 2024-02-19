@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	er "metrics/internal/errors"
+	"metrics/internal/logger"
 
 	models "metrics/internal/models"
 	"testing"
@@ -80,6 +81,11 @@ func TestMerticsRepo_Create(t *testing.T) {
 		metricType models.MetricType
 	}
 
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockStorage := setUpMockStorage(ctrl)
@@ -103,7 +109,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := repo.Create(tt.args.metricName, tt.args.metricType); err != nil && !errors.Is(err, tt.wantErr) {
+			if err := repo.Create(tt.args.metricName, tt.args.metricType, logger); err != nil && !errors.Is(err, tt.wantErr) {
 				t.Errorf("MerticsRepo.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -111,6 +117,11 @@ func TestMerticsRepo_Create(t *testing.T) {
 }
 
 func TestMerticsRepo_UpdateMetric(t *testing.T) {
+	logger, err := logger.NewAppLogger()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
+
 	type args struct {
 		name        string
 		metrciType  models.MetricType
@@ -147,7 +158,7 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value, tt.args.syncStorage, tt.args.storagePath); err != nil && err != tt.wantErr {
+			if err := repo.UpdateMetric(tt.args.name, tt.args.metrciType, tt.args.value, tt.args.syncStorage, tt.args.storagePath, logger); err != nil && err != tt.wantErr {
 				t.Errorf("MerticsRepo.UpdateMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
