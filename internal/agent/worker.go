@@ -26,7 +26,6 @@ func NewWorker(config AgentConfig, logger *zap.SugaredLogger) Worker {
 }
 
 func (w Worker) Run() {
-
 	var pollCount int
 	container := m.NewMetricSendContainer()
 
@@ -42,11 +41,12 @@ func (w Worker) Run() {
 	for {
 		select {
 		case <-reportTicker.C:
+			//TODO: как соблюссти обратную совместимость?
 			w.client.SendBoth(container, w.logger)
 			// w.client.SendMetricContainer(container)
 			// w.client.SendMetricContainerInButches(container, w.logger)
 		case <-pollTicker.C:
-			w.collector.CollectMetrics(&pollCount, &container)
+			w.collector.CollectMetrics(&pollCount, &container, w.logger)
 		}
 	}
 
