@@ -121,22 +121,6 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel, logger *
 	}
 }
 
-func (uc UserClient) SendSingleLog(body m.UpdateMetricsModel) {
-
-	url, err := url.JoinPath(uc.baseURL, "/update")
-
-	if err != nil {
-		log.Println("Error while creating url  ", err)
-	}
-
-	_, _, errs := uc.httpClient.Post(url).Set("Content-Type", "application/json").Send(body).End()
-
-	if errs != nil {
-		log.Println("Error while sending data  ", errs)
-	}
-
-}
-
 func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetricsModel {
 	if metricType == m.GaugeType {
 		value, err := strconv.ParseFloat(value, 64)
