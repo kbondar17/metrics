@@ -64,7 +64,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLog
 	post.UpdateCounter(updateGroup.Group("/counter"), repository, models.CounterType, logger)
 
 	getGroup := r.Group("/value")
-	post.GetValueRoute(getGroup, repository, logger)
+	post.GetValue(getGroup, repository, logger)
 
 	get.GetGauge(getGroup.Group("/gauge"), repository, models.GaugeType, logger)
 	get.GetCount(getGroup.Group("/counter"), repository, models.CounterType, logger)

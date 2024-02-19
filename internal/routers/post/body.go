@@ -35,8 +35,8 @@ func MultipleUpdate(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStor
 		}
 
 		err = repository.UpdateMultipleMetric(metrics)
-		// TODO: обработать ошибку. вообще все. позаворачивать и тд
 
+		// TODO: обработать ошибку. - мб позаворачивать и тд
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
@@ -87,7 +87,7 @@ func Update(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStorage bool
 
 }
 
-func GetValueRoute(rg *gin.RouterGroup, repository repo.MetricsCRUDer, logger *zap.SugaredLogger) {
+func GetValue(rg *gin.RouterGroup, repository repo.MetricsCRUDer, logger *zap.SugaredLogger) {
 	rg.POST("/", func(c *gin.Context) {
 		var metric models.UpdateMetricsModel
 		var buf bytes.Buffer
