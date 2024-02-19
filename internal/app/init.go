@@ -90,7 +90,6 @@ func NewApp(conf *AppConfig) *App {
 		if err != nil {
 			logger.Errorf("failed to load metrics: %w", err)
 		}
-		logger.Infof("restored metrics: %v", restoredMetrics)
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
 				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "", logger)

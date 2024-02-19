@@ -50,18 +50,16 @@ func gzipCompress(data []byte) ([]byte, error) {
 	w := gzip.NewWriter(&b)
 	_, err := w.Write(data)
 	if err != nil {
-		log.Println("Error while writing to gzip writer: ", err)
-		return nil, err
+		return nil, fmt.Errorf("error while compressing data: %w", err)
 	}
 	err = w.Close()
 	if err != nil {
-		log.Println("Error while closing gzip writer: ", err)
-		return nil, err
+		return nil, fmt.Errorf("error while closing gzip writer: %w", err)
 	}
 	return b.Bytes(), nil
 }
 
-func (uc UserClient) SendLogsInBatches(body []m.UpdateMetricsModel, retrError *appErros.RetryableError) error {
+func (uc UserClient) SendLogsInBatches(body []m.UpdateMetricsModel, retrError *appErros.RetryableError, logger *zap.SugaredLogger) error {
 	if len(body) == 0 {
 		return fmt.Errorf("no data to send")
 	}
@@ -85,7 +83,6 @@ func (uc UserClient) SendLogsInBatches(body []m.UpdateMetricsModel, retrError *a
 
 	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 	return errors.Join(errs...)
-	// return errors.New("AAAAAA")
 }
 
 func errIsRetriable(err error) bool {
@@ -119,7 +116,7 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel, logger *
 	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 
 	if errs != nil {
-		log.Println("Error while sending data  ", errs, " response: ", resp)
+		logger.Infoln("Error while sending data  ", errs, " response: ", resp)
 		return
 	}
 }
@@ -144,7 +141,7 @@ func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetric
 	if metricType == m.GaugeType {
 		value, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			log.Println("!Error while parsing float value ", err, " for metric : ", name)
+			log.Println("!Error while parsing float value ", err, " for metric : ", name, " value: ", value)
 			value = 0
 		}
 		return m.UpdateMetricsModel{
@@ -207,13 +204,13 @@ func (uc UserClient) SendMetricContainerInButches(data m.MetricSendContainer, lo
 	retrError := appErros.NewRetryableError()
 
 	closure := func() error {
-		return uc.SendLogsInBatches(body, retrError)
+		return uc.SendLogsInBatches(body, retrError, logger)
 	}
 
 	err := appErros.RetryWrapper(closure, errIsRetriable, *retrError)
 
 	if err != nil {
-		log.Println("Error while sending data  ", err)
+		logger.Infow("Error while sending data  ", err)
 	}
 
 }
