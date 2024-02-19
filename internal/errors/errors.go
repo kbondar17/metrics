@@ -86,3 +86,20 @@ func RetryWrapper(f func() error, errIsRetriable func(error) bool, retrErr Retry
 	}
 	return retrErr.Wrap(err)
 }
+
+// RetryWrapper excecutes the function f and retries it if it returns the error defined in retrErr
+func RetryWrapperWithResult(f func() (interface{}, error), errIsRetriable func(error) bool, retrErr RetryableError) (interface{}, error) {
+	var err error
+	for retrErr.CanRetry() {
+		result, err := f()
+		if err == nil {
+			return result, nil
+		}
+		if errIsRetriable(err) {
+			retrErr.SleepAndIncrement()
+		} else {
+			return nil, err
+		}
+	}
+	return nil, retrErr.Wrap(err)
+}
