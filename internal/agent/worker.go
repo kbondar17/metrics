@@ -14,9 +14,9 @@ type Worker struct {
 }
 
 func NewWorker(config AgentConfig, logger *zap.SugaredLogger) Worker {
-	client := NewUserClient(config)
+	client := NewUserClient(config, logger)
 
-	collector := NewCollector(config)
+	collector := NewCollector(config, logger)
 
 	return Worker{
 		client:    client,
@@ -35,18 +35,16 @@ func (w Worker) Run() {
 	pollTicker := time.NewTicker(time.Duration(w.collector.config.pollInterval) * time.Second)
 	defer pollTicker.Stop()
 
-	// w.collector.CollectMetrics(&pollCount, &container)
-	// w.client.SendMetricContainerInButches(container)
-
 	for {
 		select {
 		case <-reportTicker.C:
-			//TODO: как соблюссти обратную совместимость?
-			w.client.SendBoth(container, w.logger)
-			// w.client.SendMetricContainer(container)
-			// w.client.SendMetricContainerInButches(container, w.logger)
+			if w.collector.config.sendStrategy == Single {
+				w.client.SendMetricContainer(container)
+			} else {
+				w.client.SendMetricContainerInButches(container)
+			}
 		case <-pollTicker.C:
-			w.collector.CollectMetrics(&pollCount, &container, w.logger)
+			w.collector.CollectMetrics(&pollCount, &container)
 		}
 	}
 
