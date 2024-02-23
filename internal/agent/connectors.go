@@ -22,10 +22,10 @@ import (
 type UserClient struct {
 	baseURL    string
 	httpClient *gorequest.SuperAgent
+	logger     *zap.SugaredLogger
 }
 
-func NewUserClient(config AgentConfig) UserClient {
-
+func NewUserClient(config AgentConfig, logger *zap.SugaredLogger) UserClient {
 	client := gorequest.New().
 		Retry(2, 100*time.Millisecond,
 			http.StatusInternalServerError,
@@ -41,6 +41,7 @@ func NewUserClient(config AgentConfig) UserClient {
 	userClient := UserClient{
 		httpClient: client,
 		baseURL:    config.serverAddress,
+		logger:     logger,
 	}
 	return userClient
 }
@@ -59,8 +60,8 @@ func gzipCompress(data []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (uc UserClient) SendLogsInBatches(body []m.UpdateMetricsModel, retrError *appErros.RetryableError, logger *zap.SugaredLogger) error {
-	if len(body) == 0 {
+func (uc UserClient) SendLogsInBatches(metrics []m.UpdateMetricsModel, retrError *appErros.RetryableError) error {
+	if len(metrics) == 0 {
 		return fmt.Errorf("no data to send")
 	}
 
@@ -70,7 +71,7 @@ func (uc UserClient) SendLogsInBatches(body []m.UpdateMetricsModel, retrError *a
 		return fmt.Errorf("error while creating url:  %w", err)
 	}
 
-	bodyBytes, err := json.Marshal(body)
+	bodyBytes, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("error while marshaling data:  %w", err)
 	}
@@ -90,33 +91,31 @@ func errIsRetriable(err error) bool {
 	return errors.As(err, &e)
 }
 
-func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel, logger *zap.SugaredLogger) {
-
+func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 	url, err := url.JoinPath(uc.baseURL, "/update")
 
 	if err != nil {
-		logger.Infoln("Error while creating url  ", err)
+		uc.logger.Infoln("Error while creating url  ", err)
 		return
 	}
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		logger.Infow("error while marshaling data:  %w", err)
+		uc.logger.Infow("error while marshaling data:  %w", err)
 		return
 	}
 
 	compressedBody, err := gzipCompress(bodyBytes)
 
 	if err != nil {
-		logger.Infow("error while compressing data:  %w", err)
+		uc.logger.Infow("error while compressing data:  %w", err)
 		return
-
 	}
 
 	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 
 	if errs != nil {
-		logger.Infoln("Error while sending data  ", errs, " response: ", resp)
+		uc.logger.Infoln("Error while sending data  ", errs, " response: ", resp)
 		return
 	}
 }
@@ -148,58 +147,50 @@ func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetric
 	return m.UpdateMetricsModel{}
 }
 
-func (uc UserClient) SendMetricContainer(data m.MetricSendContainer, logger *zap.SugaredLogger) {
-
+func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
 	for metric, value := range data.GaugeMetrics {
 		body := makeBody(metric, m.GaugeType, value)
-		uc.SendSingleLogCompressed(body, logger)
+		uc.SendSingleLogCompressed(body)
 	}
 
 	for metric, value := range data.UserMetrcs {
 		body := makeBody(metric, m.GaugeType, value)
-		uc.SendSingleLogCompressed(body, logger)
+		uc.SendSingleLogCompressed(body)
 	}
 
 	for metric, value := range data.CounterMetrics {
 		body := makeBody(metric, m.CounterType, value)
-		uc.SendSingleLogCompressed(body, logger)
+		uc.SendSingleLogCompressed(body)
 	}
-
 }
 
-func (uc UserClient) SendMetricContainerInButches(data m.MetricSendContainer, logger *zap.SugaredLogger) {
-
-	body := make([]m.UpdateMetricsModel, 0, len(data.GaugeMetrics)+len(data.CounterMetrics)+len(data.UserMetrcs))
+func (uc UserClient) SendMetricContainerInButches(data m.MetricSendContainer) {
+	metrics := make([]m.UpdateMetricsModel, 0, len(data.GaugeMetrics)+len(data.CounterMetrics)+len(data.UserMetrcs))
 
 	for metric, value := range data.GaugeMetrics {
 		updateMetric := makeBody(metric, m.GaugeType, value)
-		body = append(body, updateMetric)
+		metrics = append(metrics, updateMetric)
 	}
 
 	for metric, value := range data.UserMetrcs {
 		updateMetric := makeBody(metric, m.GaugeType, value)
-		body = append(body, updateMetric)
+		metrics = append(metrics, updateMetric)
 	}
 	for metric, value := range data.CounterMetrics {
 		updateMetric := makeBody(metric, m.CounterType, value)
-		body = append(body, updateMetric)
+		metrics = append(metrics, updateMetric)
 	}
 
 	retrError := appErros.NewRetryableError()
 
 	closure := func() error {
-		return uc.SendLogsInBatches(body, retrError, logger)
+		return uc.SendLogsInBatches(metrics, retrError)
 	}
 
 	err := appErros.RetryWrapper(closure, errIsRetriable, *retrError)
 
 	if err != nil {
-		logger.Infow("Error while sending data  ", err)
+		uc.logger.Infow("Error while sending data  ", err)
 	}
 
-}
-
-func (uc UserClient) SendBoth(data m.MetricSendContainer, logger *zap.SugaredLogger) {
-	uc.SendMetricContainer(data, logger)
-	uc.SendMetricContainerInButches(data, logger)
 }

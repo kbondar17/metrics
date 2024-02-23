@@ -62,8 +62,7 @@ func addDefaultMetrics(repository repo.MetricsCRUDer, logger *zap.SugaredLogger)
 }
 
 func NewApp(conf *AppConfig) *App {
-
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 
 	if err != nil {
 		log.Fatalf("failed to create logger: %v", err)
@@ -72,13 +71,14 @@ func NewApp(conf *AppConfig) *App {
 	logger.Infof("config: %v", conf)
 
 	var storage repo.Storager
-	if conf.StorageConfig.DBDNS == "" {
+	switch {
+	case conf.StorageConfig.DBDNS == "":
 		storage = memory.NewMemStorage()
 		logger.Info("using memory storage")
-	} else {
+	default:
 		storage, err = postgres.NewPostgresStorage(conf.StorageConfig.DBDNS, logger)
 		if err != nil {
-			logger.Infoln("failed to create storage: %v", err)
+			logger.Fatalln("failed to create storage: %v", err)
 		} else {
 			logger.Info("using postgres storage")
 		}
@@ -89,7 +89,7 @@ func NewApp(conf *AppConfig) *App {
 	if conf.StorageConfig.RestoreOnStartUp {
 		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath, logger)
 		if err != nil {
-			logger.Errorf("failed to load metrics: %w", err)
+			logger.Fatalf("failed to load metrics: %w", err)
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {

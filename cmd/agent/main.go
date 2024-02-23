@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "encoding/json"
 	"log"
 	"metrics/internal/agent"
 	"metrics/internal/logger"
@@ -9,9 +8,9 @@ import (
 
 func main() {
 	config := agent.NewAgentConfigFromEnv()
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
-		log.Println("error while creating logger", "error", err)
+		log.Fatal("error while creating logger ", err)
 	}
 
 	worker := agent.NewWorker(config, logger)

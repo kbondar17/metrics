@@ -13,10 +13,11 @@ import (
 
 type Collector struct {
 	config AgentConfig
+	logger *zap.SugaredLogger
 }
 
-func NewCollector(config AgentConfig) Collector {
-	return Collector{config: config}
+func NewCollector(config AgentConfig, logger *zap.SugaredLogger) Collector {
+	return Collector{config: config, logger: logger}
 }
 
 func parseMetric(metricName string, value reflect.Value, logger *zap.SugaredLogger) string {
@@ -30,14 +31,14 @@ func parseMetric(metricName string, value reflect.Value, logger *zap.SugaredLogg
 	}
 }
 
-func (coll *Collector) CollectMetrics(pollCount *int, container *m.MetricSendContainer, logger *zap.SugaredLogger) {
+func (coll *Collector) CollectMetrics(pollCount *int, container *m.MetricSendContainer) {
 	var mem runtime.MemStats
 
 	for metric := range container.GaugeMetrics {
 		runtime.ReadMemStats(&mem)
 		v := reflect.ValueOf(mem)
 		metricValueRaw := v.FieldByName(metric)
-		container.GaugeMetrics[metric] = parseMetric(metric, metricValueRaw, logger)
+		container.GaugeMetrics[metric] = parseMetric(metric, metricValueRaw, coll.logger)
 	}
 
 	container.UserMetrcs["RandomValue"] = fmt.Sprintf("%f", rand.Float64())

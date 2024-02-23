@@ -27,7 +27,7 @@ func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
 }
 
 func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Errorf("failed to create logger: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 		metricType models.MetricType
 	}
 
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Errorf("failed to create logger: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestMerticsRepo_Create(t *testing.T) {
 }
 
 func TestMerticsRepo_UpdateMetric(t *testing.T) {
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Errorf("failed to create logger: %v", err)
 	}

@@ -23,7 +23,7 @@ func TestBase(t *testing.T) {
 
 	mockRepo.EXPECT().Ping().Return(nil).AnyTimes()
 
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("RandomValue"), models.GaugeType).Return(12.34, nil).AnyTimes()
 	mockRepo.EXPECT().GetGaugeMetricValueByName(gomock.Eq("NotExistingValue"), models.GaugeType).Return(0.0, er.ErrorNotFound).AnyTimes()
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockRepo := repository.NewMockMetricsCRUDer(ctrl)
-	logger, err := logger.NewAppLogger()
+	logger, err := logger.New()
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
