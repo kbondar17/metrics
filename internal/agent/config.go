@@ -79,8 +79,6 @@ func parseConfig() (int, int, string, string) {
 
 	pollInterval := flag.Int("p", defaultPollInterval, "Частота опроса метрик в секундах. По умолчанию 2")
 
-	httpHost := "http://" + *host
-
 	defaultDBDNS := ""
 	dbDNS := flag.String("d", defaultDBDNS, "Database dns. Default is empty value.")
 
@@ -88,6 +86,7 @@ func parseConfig() (int, int, string, string) {
 		dbDNS = &envDBDNS
 	}
 	flag.Parse()
+	httpHost := "http://" + *host
 
 	return *reportInterval, *pollInterval, httpHost, *dbDNS
 }
