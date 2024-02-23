@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	db "metrics/internal/database"
@@ -10,6 +11,7 @@ import (
 	"net"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -23,36 +25,24 @@ type PostgresStorage struct {
 	logger     *zap.SugaredLogger
 }
 
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
 func initDB(conn *sql.DB, logger *zap.SugaredLogger) error {
-	stmt := `CREATE TABLE metric (
-		id TEXT PRIMARY KEY,
-		mtype TEXT NOT NULL,
-		delta BIGINT,
-		value DOUBLE PRECISION,
-		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-	);
-	CREATE INDEX idx_update_metrics_model_id ON metric (id);
-	`
+	goose.SetBaseFS(embedMigrations)
 
-	_, err := conn.Exec(stmt)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("unable to set postgres as dialect in goose: %w", err)
+	}
 
-	if err != nil {
-		var pgErr *pgconn.PgError
-
-		if errors.As(err, &pgErr) {
-			logger.Info("Table metric already exists")
-			return nil
-		}
-
-		return err
+	if err := goose.Up(conn, "migrations"); err != nil {
+		return fmt.Errorf("unable to run migrations: %w", err)
 	}
 	logger.Infof("Table metric created")
 	return nil
 }
 
 func NewPostgresStorage(dns string, logger *zap.SugaredLogger) (PostgresStorage, error) {
-
 	conn, err := sql.Open("pgx", dns)
 
 	if err != nil {
@@ -167,24 +157,6 @@ func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsMode
 // CheckIfMetricExists is a stub for backward compatibility
 func (p PostgresStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
 	return true, nil
-	// stmt := func() (interface{}, error) {
-	// 	sql := "SELECT EXISTS(SELECT 1 FROM metric WHERE id = $1 and mtype = $2);"
-	// 	row := p.Conn.QueryRow(sql, name, mType)
-	// 	var result bool
-	// 	err := row.Scan(&result)
-	// 	if err != nil {
-	// 		return false, err
-	// 	}
-	// 	return result, nil
-	// }
-
-	// rawRes, err := appErrors.RetryWrapperWithResult(stmt, errIsRetriable, p.CanRetrier)
-
-	// if err != nil {
-	// 	return false, fmt.Errorf("unable to check if metric exists: %w", err)
-	// }
-	// return rawRes.(bool), nil
-
 }
 
 func (p PostgresStorage) GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error) {
