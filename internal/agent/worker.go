@@ -3,26 +3,29 @@ package agent
 import (
 	m "metrics/internal/models"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Worker struct {
 	client    UserClient
 	collector Collector
+	logger    *zap.SugaredLogger
 }
 
-func NewWorker(config AgentConfig) Worker {
-	client := NewUserClient(config)
+func NewWorker(config AgentConfig, logger *zap.SugaredLogger) Worker {
+	client := NewUserClient(config, logger)
 
-	collector := NewCollector(config)
+	collector := NewCollector(config, logger)
 
 	return Worker{
 		client:    client,
 		collector: collector,
+		logger:    logger,
 	}
 }
 
 func (w Worker) Run() {
-
 	var pollCount int
 	container := m.NewMetricSendContainer()
 
@@ -35,7 +38,11 @@ func (w Worker) Run() {
 	for {
 		select {
 		case <-reportTicker.C:
-			w.client.SendMetricContainer(container)
+			if w.collector.config.sendStrategy == Single {
+				w.client.SendMetricContainer(container)
+			} else {
+				w.client.SendMetricContainerInButches(container)
+			}
 		case <-pollTicker.C:
 			w.collector.CollectMetrics(&pollCount, &container)
 		}

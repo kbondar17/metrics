@@ -12,29 +12,48 @@ type AgentConfig struct {
 	pollInterval   int
 	reportInterval int
 	serverAddress  string
+	sendStrategy   sendStrategy
 }
 
-func newAgentConfig(pollInterval int, reportInterval int, serverAddress string) AgentConfig {
+type sendStrategy int
+
+const (
+	Single sendStrategy = iota
+	Butches
+)
+
+func (s sendStrategy) String() string {
+	return [...]string{"Single", "Butches"}[s]
+}
+
+func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string) AgentConfig {
 	u, err := url.Parse(serverAddress)
 	if err != nil {
 		panic(err)
+	}
+
+	var strategy sendStrategy
+	if dbDNS != "" {
+		strategy = Butches
+	} else {
+		strategy = Single
 	}
 
 	return AgentConfig{
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 		serverAddress:  u.String(),
+		sendStrategy:   strategy,
 	}
 }
 
 func NewAgentConfigFromEnv() AgentConfig {
-	reportInterval, pollInterval, serverAddress := parseConfig()
-	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n", reportInterval, pollInterval, serverAddress)
-	return newAgentConfig(pollInterval, reportInterval, serverAddress)
+	reportInterval, pollInterval, serverAddress, dbDNS := parseConfig()
+	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n, dbDNS: %s", reportInterval, pollInterval, serverAddress, dbDNS)
+	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS)
 }
 
-func parseConfig() (int, int, string) {
-
+func parseConfig() (int, int, string, string) {
 	defaultHost := "localhost:8080"
 	if host, exists := os.LookupEnv("ADDRESS"); exists {
 		defaultHost = host
@@ -60,10 +79,14 @@ func parseConfig() (int, int, string) {
 
 	pollInterval := flag.Int("p", defaultPollInterval, "Частота опроса метрик в секундах. По умолчанию 2")
 
-	flag.Parse()
+	defaultDBDNS := ""
+	dbDNS := flag.String("d", defaultDBDNS, "Database dns. Default is empty value.")
 
+	if envDBDNS := os.Getenv("DATABASE_DSN"); envDBDNS != "" {
+		dbDNS = &envDBDNS
+	}
+	flag.Parse()
 	httpHost := "http://" + *host
 
-	return *reportInterval, *pollInterval, httpHost
-
+	return *reportInterval, *pollInterval, httpHost, *dbDNS
 }

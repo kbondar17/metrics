@@ -6,6 +6,8 @@ import (
 	"time"
 
 	db "metrics/internal/database"
+	"metrics/internal/database/memory"
+	postgres "metrics/internal/database/postgres"
 	er "metrics/internal/errors"
 	logger "metrics/internal/logger"
 	m "metrics/internal/models"
@@ -13,29 +15,32 @@ import (
 	routes "metrics/internal/routers"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type App struct {
 	Config     *AppConfig
 	Router     *gin.Engine
-	logger     *logger.AppLogger
 	repository repo.MetricsCRUDer
+	logger     *zap.SugaredLogger
 }
 
 func (a *App) Run() {
-	log.Println("Starting server on ", a.Config.host)
+	a.logger.Info("Starting server on ", a.Config.host)
 	a.Router.Run(a.Config.host)
 }
 
 // SaveDataInInterval saves data in interval
 func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 	for {
-		metrics := a.repository.GetAllMetrics()
-
+		metrics, err := a.repository.GetAllMetrics()
+		if err != nil {
+			a.logger.Errorf("failed to get metrics: %w", err)
+		}
 		for _, metric := range metrics {
 			err := db.SaveMetric(fname, metric)
 			if err != nil {
-				log.Printf("failed to save metric: %v", err)
+				a.logger.Errorf("failed to save metric: %w", err)
 			}
 		}
 		time.Sleep(time.Duration(storeInterval) * time.Second)
@@ -43,13 +48,13 @@ func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 }
 
 // addDefaultMetrics creates all metrics in DB
-func addDefaultMetrics(repository repo.MetricsCRUDer) {
+func addDefaultMetrics(repository repo.MetricsCRUDer, logger *zap.SugaredLogger) {
 
 	for metricType, metricArray := range m.MetricsDict {
 		for _, name := range metricArray {
 			err := repository.Create(name, metricType)
 			if err != nil && !errors.Is(err, er.ErrAlreadyExists) {
-				log.Fatalf("failed to create metric: %v", err)
+				logger.Errorf("failed to create metric: %w", err)
 			}
 		}
 	}
@@ -57,37 +62,56 @@ func addDefaultMetrics(repository repo.MetricsCRUDer) {
 }
 
 func NewApp(conf *AppConfig) *App {
-	storage := db.NewStorage()
-	repository := repo.NewMerticsRepo(storage)
-	logger := logger.NewAppLogger()
+	logger, err := logger.New()
+
+	if err != nil {
+		log.Fatalf("failed to create logger: %v", err)
+	}
+
+	logger.Infof("config: %v", conf)
+
+	var storage repo.Storager
+	switch {
+	case conf.StorageConfig.DBDNS == "":
+		storage = memory.NewMemStorage()
+		logger.Info("using memory storage")
+	default:
+		storage, err = postgres.NewPostgresStorage(conf.StorageConfig.DBDNS, logger)
+		if err != nil {
+			logger.Fatalln("failed to create storage: %v", err)
+		} else {
+			logger.Info("using postgres storage")
+		}
+	}
+
+	repository := repo.NewMerticsRepo(storage, logger)
 
 	if conf.StorageConfig.RestoreOnStartUp {
-		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath)
+		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath, logger)
 		if err != nil {
-			log.Printf("failed to load metrics: %v", err)
+			// не делаю return и не падаю с ошибкой, на случай, если файла не существует и загружать нечего
+			logger.Infof("failed to load metrics: %w", err)
 		}
-		log.Println("restored metrics::", restoredMetrics)
-
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
 				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
 				if err != nil {
-					log.Printf("failed to update metric: %v", err)
+					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
 				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
 				if err != nil {
-					log.Printf("failed to update metric: %v", err)
+					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 		}
-		log.Println("restored metrics")
+		logger.Info("restored metrics")
 	}
 
 	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath)
 
-	addDefaultMetrics(repository)
+	addDefaultMetrics(repository, logger)
 
-	return &App{Config: conf, Router: router, logger: logger, repository: repository}
+	return &App{Config: conf, Router: router, repository: repository, logger: logger}
 }
