@@ -89,7 +89,8 @@ func NewApp(conf *AppConfig) *App {
 	if conf.StorageConfig.RestoreOnStartUp {
 		restoredMetrics, err := db.Load(conf.StorageConfig.StoragePath, logger)
 		if err != nil {
-			logger.Fatalf("failed to load metrics: %w", err)
+			// не делаю return и не падаю с ошибкой, на случай, если файла не существует и загружать нечего
+			logger.Infof("failed to load metrics: %w", err)
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
