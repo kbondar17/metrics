@@ -176,8 +176,12 @@ func (p PostgresStorage) GetGaugeMetricValueByName(name string, mType models.Met
 	if err != nil {
 		return 0, fmt.Errorf("unable to get metric value: %w", err)
 	}
-	fmt.Println("rawRes:::", rawRes)
-	return rawRes.(float64), nil
+
+	if res, ok := rawRes.(float64); ok {
+		return res, nil
+	}
+	return 0, fmt.Errorf("unable to convert result to float64 %s", rawRes)
+
 }
 
 func (p PostgresStorage) GetCountMetricValueByName(name string) (int64, error) {
@@ -197,9 +201,11 @@ func (p PostgresStorage) GetCountMetricValueByName(name string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to get metric value: %w", err)
 	}
-	fmt.Println("rawRes:::", rawRes)
 
-	return rawRes.(int64), nil
+	if res, ok := rawRes.(int64); ok {
+		return res, nil
+	}
+	return 0, fmt.Errorf("unable to convert result to int64 %s", rawRes)
 
 }
 
