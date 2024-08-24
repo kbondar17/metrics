@@ -1,15 +1,15 @@
 package database
 
 import (
+	"bufio"
 	"encoding/json"
-	"log"
+	"fmt"
 	"metrics/internal/models"
 	"os"
-	"strings"
 	"sync"
-)
 
-var fileRMutex = &sync.RWMutex{}
+	"go.uber.org/zap"
+)
 
 func createFile(fname string) error {
 	file, err := os.OpenFile(fname, os.O_CREATE|os.O_EXCL, 0666)
@@ -24,69 +24,72 @@ func createFile(fname string) error {
 	return nil
 }
 
-func Load(fname string) ([]models.UpdateMetricsModel, error) {
+func Load(fname string, logger *zap.SugaredLogger) ([]models.UpdateMetricsModel, error) {
+	var fileRMutex = &sync.RWMutex{}
+
 	fileRMutex.RLock()
+	file, err := os.Open(fname)
+	if err != nil {
+		fileRMutex.RUnlock()
+		return nil, fmt.Errorf("error opening file: %w", err)
+	}
+
 	defer fileRMutex.RUnlock()
+	defer file.Close()
 
 	var result []models.UpdateMetricsModel
-	data, err := os.ReadFile(fname)
 
-	if err != nil {
-		log.Println("error reading file: ", err)
-		if os.IsNotExist(err) {
-			log.Println("file doesn't exist, creating: ", fname)
-			err = createFile(fname)
-			if err != nil {
-				return nil, err
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var metric models.UpdateMetricsModel
+		err := json.Unmarshal([]byte(scanner.Text()), &metric)
+		if err != nil {
+			logger.Infow("error unmarshalling data: %v", err)
+			continue
+		}
+
+		updated := false
+		for i, m := range result {
+			if m.ID == metric.ID {
+				result[i] = metric
+				updated = true
+				break
 			}
 		}
-		return nil, err
-	}
-
-	if len(data) == 0 || data == nil {
-		log.Println("empty file: ", fname)
-		data = []byte("[]")
-	}
-
-	decoder := json.NewDecoder(strings.NewReader(string(data)))
-
-	if err := decoder.Decode(&result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-var fileMutex = &sync.Mutex{}
-
-// SaveMetric saves metric to file
-func SaveMetric(fname string, data models.UpdateMetricsModel) error {
-	existingData, err := Load(fname)
-	if err != nil {
-		log.Println("error loading file: ", fname, err)
-		return err
-	}
-	// remove the metric to be updated
-	for i, metric := range existingData {
-		if metric.ID == data.ID && metric.MType == data.MType {
-			existingData = append(existingData[:i], existingData[i+1:]...)
-			break
+		if !updated {
+			result = append(result, metric)
 		}
 	}
-	existingData = append(existingData, data)
 
-	jsonData, err := json.Marshal(existingData)
-	if err != nil {
-		log.Println("error marshalling data: ", err)
-		return err
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error scanning file: %w", err)
 	}
+	return result, nil
+
+}
+
+// TODO: LOGGER
+// SaveMetric saves metric to file
+func SaveMetric(fname string, data models.UpdateMetricsModel) error {
+	var fileMutex = &sync.Mutex{}
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
 
-	err = os.WriteFile(fname, jsonData, 0666)
+	file, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Println("error writing to file: ", err)
-		return err
+		return fmt.Errorf("error opening file: %w", err)
 	}
-	log.Println("saved metric to ", fname)
+	defer file.Close()
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshalling data: %w", err)
+	}
+	_, err = file.Write(append(jsonData, '\n'))
+
+	if err != nil {
+		return fmt.Errorf("error writing to file: %w", err)
+	}
+
 	return nil
 }

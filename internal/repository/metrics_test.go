@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	er "metrics/internal/errors"
+	"metrics/internal/logger"
 
 	models "metrics/internal/models"
 	"testing"
@@ -26,6 +27,10 @@ func setUpMockStorage(ctrl *gomock.Controller) *MockStorager {
 }
 
 func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
+	logger, err := logger.New()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
 
 	type args struct {
 		name  string
@@ -36,7 +41,7 @@ func TestMerticsRepo_GetGaugeMetricValueByName(t *testing.T) {
 	defer ctrl.Finish()
 	mockStorage := setUpMockStorage(ctrl)
 
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	tests := []struct {
 		name    string
@@ -80,10 +85,15 @@ func TestMerticsRepo_Create(t *testing.T) {
 		metricType models.MetricType
 	}
 
+	logger, err := logger.New()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockStorage := setUpMockStorage(ctrl)
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	tests := []struct {
 		name    string
@@ -111,6 +121,11 @@ func TestMerticsRepo_Create(t *testing.T) {
 }
 
 func TestMerticsRepo_UpdateMetric(t *testing.T) {
+	logger, err := logger.New()
+	if err != nil {
+		t.Errorf("failed to create logger: %v", err)
+	}
+
 	type args struct {
 		name        string
 		metrciType  models.MetricType
@@ -143,7 +158,7 @@ func TestMerticsRepo_UpdateMetric(t *testing.T) {
 	mockStorage.EXPECT().UpdateMetric(gomock.Eq("existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
 	mockStorage.EXPECT().UpdateMetric(gomock.Eq("not_existing_metric"), models.GaugeType, 1, false, "stub").Return(nil).AnyTimes()
 
-	repo := NewMerticsRepo(mockStorage)
+	repo := NewMerticsRepo(mockStorage, logger)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

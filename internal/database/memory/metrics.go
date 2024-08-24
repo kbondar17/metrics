@@ -1,7 +1,8 @@
-package database
+package memory
 
 import (
 	"log"
+	db "metrics/internal/database"
 	er "metrics/internal/errors"
 	"metrics/internal/models"
 	"sync"
@@ -17,7 +18,15 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{GaugeData: make(map[string]float64), CountData: make(map[string]int64)}
 }
 
-func (ms *MemStorage) GetAllMetrics() []models.UpdateMetricsModel {
+func (ms *MemStorage) Ping() error {
+	return nil
+}
+
+func (ms *MemStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
+	panic("implement me")
+}
+
+func (ms *MemStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
 	var AllMetrics []models.UpdateMetricsModel
 
 	for metricName := range ms.GaugeData {
@@ -38,7 +47,7 @@ func (ms *MemStorage) GetAllMetrics() []models.UpdateMetricsModel {
 		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &val, MType: string(models.CounterType)})
 	}
 
-	return AllMetrics
+	return AllMetrics, nil
 }
 
 func (ms *MemStorage) CheckIfMetricExists(name string, mType models.MetricType) (bool, error) {
@@ -109,7 +118,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Unlock()
 		if syncStorage {
 			log.Println("saving metric to file: ", name, val)
-			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val})
+			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val})
 		}
 
 		return nil
@@ -123,7 +132,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Unlock()
 		if syncStorage {
 			log.Println("saving metric to file: ", name, val)
-			SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val})
+			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val})
 		}
 		return nil
 	default:

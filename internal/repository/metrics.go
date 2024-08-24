@@ -2,18 +2,22 @@
 package repository
 
 import (
-	"log"
+	"fmt"
 	er "metrics/internal/errors"
 
 	models "metrics/internal/models"
+
+	"go.uber.org/zap"
 )
 
 type MetricsCRUDer interface {
 	GetGaugeMetricValueByName(name string, mType models.MetricType) (float64, error)
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
-	GetAllMetrics() []models.UpdateMetricsModel
+	GetAllMetrics() ([]models.UpdateMetricsModel, error)
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
+	UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error
+	Ping() error
 }
 
 type Storager interface {
@@ -22,21 +26,39 @@ type Storager interface {
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
-	GetAllMetrics() []models.UpdateMetricsModel
+	GetAllMetrics() ([]models.UpdateMetricsModel, error)
+	UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error
+	Ping() error
 }
 
 type MerticsRepo struct {
 	Storage Storager
+	logger  *zap.SugaredLogger
 }
 
-func NewMerticsRepo(storage Storager) MetricsCRUDer {
-	return MerticsRepo{Storage: storage}
+func NewMerticsRepo(storage Storager, logger *zap.SugaredLogger) MetricsCRUDer {
+	return MerticsRepo{Storage: storage, logger: logger}
 }
 
-func (repo MerticsRepo) GetAllMetrics() []models.UpdateMetricsModel {
-	metrics := repo.Storage.GetAllMetrics()
-	log.Println("all metrics: ", metrics)
-	return metrics
+func (repo MerticsRepo) Ping() error {
+	err := repo.Storage.Ping()
+	if err != nil {
+		return fmt.Errorf("failed to ping storage %w", err)
+	}
+	return nil
+}
+
+func (repo MerticsRepo) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
+	return repo.Storage.UpdateMultipleMetric(metrics)
+}
+
+func (repo MerticsRepo) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
+	metrics, err := repo.Storage.GetAllMetrics()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all metrics: %w", err)
+	}
+
+	return metrics, err
 }
 
 func (repo MerticsRepo) GetCountMetricValueByName(name string) (int64, error) {
@@ -47,8 +69,7 @@ func (repo MerticsRepo) GetCountMetricValueByName(name string) (int64, error) {
 	}
 
 	if err != nil {
-		log.Println("failed to get metric by name: ", err)
-		return 0, err
+		return 0, fmt.Errorf("failed to get metric by name: %w", err)
 	}
 	return repo.Storage.GetCountMetricValueByName(name)
 }
@@ -61,8 +82,7 @@ func (repo MerticsRepo) GetGaugeMetricValueByName(name string, mType models.Metr
 	}
 
 	if err != nil {
-		log.Println("failed to get metric by name: ", err)
-		return 0, err
+		return 0, fmt.Errorf("failed to get metric by name: %w", err)
 	}
 	return repo.Storage.GetGaugeMetricValueByName(name, mType)
 }
@@ -71,14 +91,12 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 	exists, err := repo.Storage.CheckIfMetricExists(metricName, metricType)
 
 	if err != nil {
-		log.Printf("failed to check if metric exists: %v", err)
-		return err
+		return fmt.Errorf("failed to check if metric exists: %w", err)
 	}
 	if exists {
-		// log.Printf("metric already exists: %v", err)
 		return er.ErrAlreadyExists
 	}
-	log.Println("Создали метрику типа: ", metricType, " с именем: ", metricName)
+	repo.logger.Infof("Создали метрику типа: ", metricType, " с именем: ", metricName)
 	return repo.Storage.Create(metricName, metricType)
 
 }
