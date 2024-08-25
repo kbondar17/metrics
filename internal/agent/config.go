@@ -13,6 +13,7 @@ type AgentConfig struct {
 	reportInterval int
 	serverAddress  string
 	sendStrategy   sendStrategy
+	rateLimit      int
 }
 
 type sendStrategy int
@@ -26,7 +27,7 @@ func (s sendStrategy) String() string {
 	return [...]string{"Single", "Butches"}[s]
 }
 
-func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string) AgentConfig {
+func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string, rateLimit int) AgentConfig {
 	u, err := url.Parse(serverAddress)
 	if err != nil {
 		panic(err)
@@ -44,16 +45,27 @@ func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, 
 		reportInterval: reportInterval,
 		serverAddress:  u.String(),
 		sendStrategy:   strategy,
+		rateLimit:      rateLimit,
 	}
 }
 
 func NewAgentConfigFromEnv() AgentConfig {
-	reportInterval, pollInterval, serverAddress, dbDNS := parseConfig()
+	reportInterval, pollInterval, serverAddress, dbDNS, rateLimit := parseConfig()
 	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n, dbDNS: %s", reportInterval, pollInterval, serverAddress, dbDNS)
-	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS)
+	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS, rateLimit)
 }
 
-func parseConfig() (int, int, string, string) {
+func parseConfig() (int, int, string, string, int) {
+
+	defaultRateLimit := 10
+	if rateLimitEnv, exists := os.LookupEnv("RATE_LIMIT"); exists {
+		if rateLimit, err := strconv.Atoi(rateLimitEnv); err == nil {
+			defaultRateLimit = rateLimit
+		}
+	}
+
+	rateLimit := flag.Int("l", defaultRateLimit, "Количественно одновременных запросов на сервер. По умолчанию 10")
+
 	defaultHost := "localhost:8080"
 	if host, exists := os.LookupEnv("ADDRESS"); exists {
 		defaultHost = host
@@ -88,5 +100,5 @@ func parseConfig() (int, int, string, string) {
 	flag.Parse()
 	httpHost := "http://" + *host
 
-	return *reportInterval, *pollInterval, httpHost, *dbDNS
+	return *reportInterval, *pollInterval, httpHost, *dbDNS, *rateLimit
 }

@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	appErros "metrics/internal/errors"
 	m "metrics/internal/models"
+	"sync"
 
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/parnurzeal/gorequest"
@@ -23,9 +22,19 @@ type UserClient struct {
 	baseURL    string
 	httpClient *gorequest.SuperAgent
 	logger     *zap.SugaredLogger
+	rateLimit  int
 }
 
 func NewUserClient(config AgentConfig, logger *zap.SugaredLogger) UserClient {
+	userClient := UserClient{
+		baseURL:   config.serverAddress,
+		logger:    logger,
+		rateLimit: config.rateLimit,
+	}
+	return userClient
+}
+
+func newClient() *gorequest.SuperAgent {
 	client := gorequest.New().
 		Retry(2, 100*time.Millisecond,
 			http.StatusInternalServerError,
@@ -37,13 +46,7 @@ func NewUserClient(config AgentConfig, logger *zap.SugaredLogger) UserClient {
 		MaxIdleConns:    10,
 		IdleConnTimeout: 30 * time.Second,
 	}
-
-	userClient := UserClient{
-		httpClient: client,
-		baseURL:    config.serverAddress,
-		logger:     logger,
-	}
-	return userClient
+	return client
 }
 
 func gzipCompress(data []byte) ([]byte, error) {
@@ -111,76 +114,87 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 		uc.logger.Infow("error while compressing data:  %w", err)
 		return
 	}
-
-	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+	// при переисползовании клиента горутинами возникает race condition
+	client := newClient()
+	resp, _, errs := client.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 
 	if errs != nil {
 		uc.logger.Infoln("Error while sending data  ", errs, " response: ", resp)
 		return
 	}
+
+	// uc.logger.Infow("Metric sent", "ID", body.ID)
 }
 
-func makeBody(name string, metricType m.MetricType, value string) m.UpdateMetricsModel {
-	if metricType == m.GaugeType {
-		value, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			log.Println("!Error while parsing float value ", err, " for metric : ", name, " value: ", value)
-			value = 0
-		}
-		return m.UpdateMetricsModel{
-			ID:    name,
-			MType: string(metricType),
-			Value: &value,
-		}
-	} else if metricType == m.CounterType {
-		value, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			log.Println("!Error while parsing int value ", err, " for metric : ", name)
-			value = 0
-		}
-		return m.UpdateMetricsModel{
-			ID:    name,
-			MType: string(metricType),
-			Delta: &value,
-		}
-	}
-	return m.UpdateMetricsModel{}
-}
-
-func (uc UserClient) SendMetricContainer(data m.MetricSendContainer) {
-	for metric, value := range data.GaugeMetrics {
-		body := makeBody(metric, m.GaugeType, value)
-		uc.SendSingleLogCompressed(body)
-	}
-
-	for metric, value := range data.UserMetrcs {
-		body := makeBody(metric, m.GaugeType, value)
-		uc.SendSingleLogCompressed(body)
-	}
-
-	for metric, value := range data.CounterMetrics {
-		body := makeBody(metric, m.CounterType, value)
-		uc.SendSingleLogCompressed(body)
+func clientWorker(jobs <-chan func()) {
+	for j := range jobs {
+		j()
 	}
 }
 
-func (uc UserClient) SendMetricContainerInButches(data m.MetricSendContainer) {
-	metrics := make([]m.UpdateMetricsModel, 0, len(data.GaugeMetrics)+len(data.CounterMetrics)+len(data.UserMetrcs))
+func (uc UserClient) SendMetricContainer(dataChan chan m.MetricSendContainer) {
 
-	for metric, value := range data.GaugeMetrics {
-		updateMetric := makeBody(metric, m.GaugeType, value)
-		metrics = append(metrics, updateMetric)
+	jobs := make(chan func(), 100)
+
+	for i := 0; i < uc.rateLimit; i++ {
+		go clientWorker(jobs)
 	}
 
-	for metric, value := range data.UserMetrcs {
-		updateMetric := makeBody(metric, m.GaugeType, value)
-		metrics = append(metrics, updateMetric)
-	}
-	for metric, value := range data.CounterMetrics {
-		updateMetric := makeBody(metric, m.CounterType, value)
-		metrics = append(metrics, updateMetric)
+	for container := range dataChan {
+		startTime := time.Now()
+
+		uc.logger.Infoln("Sending data")
+
+		metrics := container.ConvertContainerToUpdateMetricsModel()
+		for _, metric := range metrics {
+			jobs <- func() {
+				uc.SendSingleLogCompressed(metric)
+			}
+		}
+
+		uc.logger.Infow("Time taken to send data", "time", time.Since(startTime))
 	}
 
+}
+
+func SplitMetricInBatches(data []m.UpdateMetricsModel, n int) [][]m.UpdateMetricsModel {
+	var divided [][]m.UpdateMetricsModel
+
+	size := len(data) / n
+	for i := 0; i < n; i++ {
+		start := i * size
+		end := start + size
+		if i == n-1 {
+			end = len(data)
+		}
+		divided = append(divided, data[start:end])
+	}
+
+	return divided
+}
+
+func (uc UserClient) GoSend() {
+
+}
+
+func (uc UserClient) MetricSender(batches [][]m.UpdateMetricsModel, reportInterval int, numWorker int) {
+	reportTicker := time.NewTicker(time.Duration(reportInterval) * time.Second)
+	defer reportTicker.Stop()
+	var wg sync.WaitGroup
+
+	for range reportTicker.C {
+		for i := 0; i < numWorker; i++ {
+			wg.Add(1)
+			go uc.SendMetricBatch(batches[i])
+			wg.Done()
+		}
+	}
+	wg.Wait()
+
+}
+
+func (uc UserClient) SendMetricBatch(metrics []m.UpdateMetricsModel) {
+	fmt.Println("Sending data")
 	retrError := appErros.NewRetryableError()
 
 	closure := func() error {

@@ -2,7 +2,7 @@ package agent
 
 import (
 	m "metrics/internal/models"
-	"time"
+	"sync"
 
 	"go.uber.org/zap"
 )
@@ -26,26 +26,16 @@ func NewWorker(config AgentConfig, logger *zap.SugaredLogger) Worker {
 }
 
 func (w Worker) Run() {
-	var pollCount int
-	container := m.NewMetricSendContainer()
 
-	reportTicker := time.NewTicker(time.Duration(w.collector.config.reportInterval) * time.Second)
-	defer reportTicker.Stop()
+	var pollCount int32
 
-	pollTicker := time.NewTicker(time.Duration(w.collector.config.pollInterval) * time.Second)
-	defer pollTicker.Stop()
+	wg := sync.WaitGroup{}
 
-	for {
-		select {
-		case <-reportTicker.C:
-			if w.collector.config.sendStrategy == Single {
-				w.client.SendMetricContainer(container)
-			} else {
-				w.client.SendMetricContainerInButches(container)
-			}
-		case <-pollTicker.C:
-			w.collector.CollectMetrics(&pollCount, &container)
-		}
-	}
+	dataChan := make(chan m.MetricSendContainer, 10)
+
+	go w.collector.CollectMetrics(&pollCount, w.collector.config.pollInterval, w.collector.config.reportInterval, dataChan)
+	go w.client.SendMetricContainer(dataChan)
+	wg.Add(2)
+	wg.Wait()
 
 }
