@@ -1,5 +1,10 @@
 package models
 
+import (
+	"log"
+	"strconv"
+)
+
 type MetricType string
 
 const (
@@ -7,18 +12,21 @@ const (
 	GaugeType   MetricType = "gauge"
 )
 
+// TODO: remove?
 type GaugeMetric struct {
 	Name  string  `json:"name"`
 	Type  string  `json:"type"`
 	Value float64 `json:"value"`
 }
 
+// TODO: remove?
 type CounterMetric struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
 	Value int64  `json:"value"`
 }
 
+// TODO: remove?
 type Metric struct {
 	Name  string     `json:"name"`
 	Type  MetricType `json:"type"`
@@ -32,16 +40,47 @@ type MetricResponseModel struct {
 }
 
 type UpdateMetricsModel struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	ID    string  `json:"id"`              // имя метрики
+	MType string  `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
+// NewMetricSendContainer is used for collecting data before sending to server
 type MetricSendContainer struct {
 	GaugeMetrics   map[string]string
 	CounterMetrics map[string]string
 	UserMetrcs     map[string]string
+}
+
+func (mc *MetricSendContainer) ConvertContainerToUpdateMetricsModel() []UpdateMetricsModel {
+	var updateMetrics []UpdateMetricsModel
+	for metric, value := range mc.GaugeMetrics {
+		value, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			log.Println("!Error while parsing float value ", err, " for metric : ", metric, " value: ", value)
+			value = 0
+		}
+
+		updateMetrics = append(updateMetrics, UpdateMetricsModel{
+			ID:    metric,
+			MType: string(GaugeType),
+			Value: value,
+		})
+	}
+	for metric, value := range mc.CounterMetrics {
+		value, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			log.Println("!Error while parsing int value ", err, " for metric : ", metric)
+			value = 0
+		}
+		updateMetrics = append(updateMetrics, UpdateMetricsModel{
+			ID:    metric,
+			MType: string(CounterType),
+			Delta: value,
+		})
+	}
+	return updateMetrics
 }
 
 var (
@@ -75,7 +114,7 @@ var (
 		"TotalAlloc",
 	}
 
-	AllMetricsNames = append(SystemMetrics, "RandomValue", "PollCount", "testCounter", "testGauge")
+	AllMetricsNames = append(SystemMetrics, "RandomValue", "PollCount")
 )
 
 // NewMetricSendContainer is used for collecting data before sending to server
@@ -89,17 +128,14 @@ func NewMetricSendContainer() MetricSendContainer {
 	}
 	counterMap := make(map[string]string)
 	counterMap["PollCount"] = ""
-	counterMap["testCounter"] = ""
 
 	userMap := make(map[string]string)
-	userMap["testGauge"] = ""
 	userMap["RandomValue"] = ""
 
 	metricContainer.UserMetrcs = userMap
 	metricContainer.GaugeMetrics = gaugeMap
 	metricContainer.CounterMetrics = counterMap
 	return metricContainer
-
 }
 
 // MetricsDict is used for db initialization
@@ -109,6 +145,6 @@ func init() {
 	MetricsDict = make(map[MetricType][]string)
 	MetricsDict[CounterType] = []string{"PollCount", "testCounter"}
 	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], SystemMetrics...)
-	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], "RandomValue", "testGauge")
+	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], "RandomValue")
 
 }

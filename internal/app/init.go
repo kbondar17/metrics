@@ -94,13 +94,13 @@ func NewApp(conf *AppConfig) *App {
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
+				err := repository.UpdateMetric(metric.ID, m.GaugeType, metric.Value, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
+				err := repository.UpdateMetric(metric.ID, m.CounterType, metric.Delta, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}

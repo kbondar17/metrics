@@ -67,14 +67,14 @@ func Update(rg *gin.RouterGroup, repository repo.MetricsCRUDer, syncStorage bool
 		}
 
 		if metric.MType == string(models.GaugeType) {
-			err := repository.UpdateMetric(metric.ID, models.GaugeType, *metric.Value, syncStorage, storagePath)
+			err := repository.UpdateMetric(metric.ID, models.GaugeType, metric.Value, syncStorage, storagePath)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
 			return
 		}
 		if metric.MType == string(models.CounterType) {
-			err := repository.UpdateMetric(metric.ID, models.CounterType, *metric.Delta, syncStorage, storagePath)
+			err := repository.UpdateMetric(metric.ID, models.CounterType, metric.Delta, syncStorage, storagePath)
 			if err == er.ErrorNotFound {
 				c.JSON(http.StatusBadRequest, gin.H{"metric name": metric.ID, "error": "metric not found"})
 			}
@@ -111,7 +111,7 @@ func GetValue(rg *gin.RouterGroup, repository repo.MetricsCRUDer, logger *zap.Su
 				return
 			}
 			c.Header("Content-Type", "application/json")
-			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: &value})
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Value: value})
 			return
 		}
 		if metric.MType == string(models.CounterType) {
@@ -122,7 +122,7 @@ func GetValue(rg *gin.RouterGroup, repository repo.MetricsCRUDer, logger *zap.Su
 			}
 			value64 := int64(value)
 			c.Header("Content-Type", "application/json")
-			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: &value64})
+			c.JSON(200, models.UpdateMetricsModel{ID: metric.ID, MType: metric.MType, Delta: value64})
 			return
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown metric type"})

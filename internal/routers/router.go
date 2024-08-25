@@ -18,7 +18,7 @@ import (
 func addMiddleware(r *gin.Engine, logger *zap.SugaredLogger) {
 	r.Use(RequestLogger(logger))
 	r.Use(DeCompressionMiddleware(logger))
-	r.Use(CompressionMiddleware(logger))
+	// r.Use(CompressionMiddleware(logger))
 }
 
 func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLogger, syncStorage bool, storagePath string) *gin.Engine {
@@ -44,6 +44,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLog
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})

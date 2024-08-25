@@ -35,7 +35,7 @@ func (ms *MemStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
 			log.Println("failed to get metric by name: ", err)
 			continue
 		}
-		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: &val, MType: string(models.GaugeType)})
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Value: val, MType: string(models.GaugeType)})
 	}
 
 	for metricName := range ms.CountData {
@@ -44,7 +44,7 @@ func (ms *MemStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
 			log.Println("failed to get metric by name: ", err)
 			continue
 		}
-		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: &val, MType: string(models.CounterType)})
+		AllMetrics = append(AllMetrics, models.UpdateMetricsModel{ID: metricName, Delta: val, MType: string(models.CounterType)})
 	}
 
 	return AllMetrics, nil
@@ -118,7 +118,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Unlock()
 		if syncStorage {
 			log.Println("saving metric to file: ", name, val)
-			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val})
+			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: val})
 		}
 
 		return nil
@@ -132,7 +132,7 @@ func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, va
 		ms.mu.Unlock()
 		if syncStorage {
 			log.Println("saving metric to file: ", name, val)
-			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val})
+			db.SaveMetric(storagePath, models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: val})
 		}
 		return nil
 	default:

@@ -8,7 +8,7 @@ import (
 	models "metrics/internal/models"
 	"testing"
 
-	"go.uber.org/mock/gomock"
+		"go.uber.org/mock/gomock"
 )
 
 // Общие моки для всех тестов

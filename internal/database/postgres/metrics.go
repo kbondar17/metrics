@@ -114,7 +114,6 @@ func (p PostgresStorage) transactionWrapper(f func(tx *sql.Tx) error) error {
 
 	err = f(tx)
 	return err
-
 }
 
 func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
@@ -137,9 +136,9 @@ func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsMode
 				return err
 			} else {
 				if metric.MType == string(models.CounterType) {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Delta)
+					fmt.Println("udpated ok :: ", metric.ID, metric.MType, metric.Delta)
 				} else {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Value)
+					fmt.Println("udpated ok :: ", metric.ID, metric.MType, metric.Value)
 				}
 			}
 		}
@@ -209,7 +208,7 @@ func (p PostgresStorage) GetCountMetricValueByName(name string) (int64, error) {
 
 }
 
-// TODO: должен ли падать с ошишбкой?
+// TODO: должен ли падать с ошибкой?
 func (p PostgresStorage) Create(metricName string, metricType models.MetricType) error {
 	stmt := func(tx *sql.Tx) error {
 
@@ -233,13 +232,13 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 		if !ok {
 			return fmt.Errorf("value %s is not int64", value)
 		}
-		metric = models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val}
+		metric = models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: val}
 	} else {
 		val, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("value %s is not int64", value)
 		}
-		metric = models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val}
+		metric = models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: val}
 	}
 
 	query := func(tx *sql.Tx) error {
