@@ -14,6 +14,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+const hashKey = "hashKey"
+
 func TestBase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -27,7 +29,7 @@ func TestBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json", hashKey)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/ping", nil)
@@ -54,7 +56,7 @@ func TestGetGaugeMetricValueByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json")
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "/tmp/tmp.json", hashKey)
 
 	tests := []struct {
 		name           string
@@ -117,7 +119,7 @@ func TestUpdateGaugeMetric(t *testing.T) {
 	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
 	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
 
-	router := RegisterMerticsRoutes(mockRepo, logger, false, "")
+	router := RegisterMerticsRoutes(mockRepo, logger, false, "", hashKey)
 
 	tests := []struct {
 		name           string
