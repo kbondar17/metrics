@@ -75,7 +75,7 @@ var (
 		"TotalAlloc",
 	}
 
-	AllMetricsNames = append(SystemMetrics, "RandomValue", "PollCount", "testCounter", "testGauge")
+	AllMetricsNames = append(SystemMetrics, "RandomValue", "PollCount")
 )
 
 // NewMetricSendContainer is used for collecting data before sending to server
@@ -89,10 +89,8 @@ func NewMetricSendContainer() MetricSendContainer {
 	}
 	counterMap := make(map[string]string)
 	counterMap["PollCount"] = ""
-	counterMap["testCounter"] = ""
 
 	userMap := make(map[string]string)
-	userMap["testGauge"] = ""
 	userMap["RandomValue"] = ""
 
 	metricContainer.UserMetrcs = userMap
@@ -107,8 +105,8 @@ var MetricsDict map[MetricType][]string
 
 func init() {
 	MetricsDict = make(map[MetricType][]string)
-	MetricsDict[CounterType] = []string{"PollCount", "testCounter"}
+	MetricsDict[CounterType] = []string{"PollCount"}
 	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], SystemMetrics...)
-	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], "RandomValue", "testGauge")
+	MetricsDict[GaugeType] = append(MetricsDict[GaugeType], "RandomValue")
 
 }
