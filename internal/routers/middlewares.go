@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	utils "metrics/internal/myutils"
 	"strings"
 	"time"
 
@@ -24,6 +25,44 @@ func (w CompressWriter) Write(b []byte) (int, error) {
 	}
 	return w.ResponseWriter.Write(compressed)
 
+}
+
+func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != "POST" {
+			c.Next()
+		}
+
+		headers := c.Request.Header
+		if _, ok := headers["HashSHA256"]; !ok {
+			c.Next()
+		}
+
+		hash := headers.Get("HashSHA256")
+		if hash == "" {
+			logger.Error("Error: Hash is empty")
+			c.AbortWithStatus(400)
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		// put body back so other middleware can read it
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		if err != nil {
+			logger.Errorw("Error while reading request body", "error", err)
+			c.AbortWithStatus(500)
+			return
+		}
+		bodyHash := utils.Hash(bodyBytes, []byte(hashKey))
+		if !utils.HashEqual([]byte(hash), []byte(bodyHash)) {
+			logger.Info("Error: Hashes are not equal")
+			c.AbortWithStatus(400)
+			return
+		} else {
+			c.Next()
+		}
+	}
 }
 
 // Сведения о запросах должны содержать URI, метод запроса и время, затраченное на его выполнение.
