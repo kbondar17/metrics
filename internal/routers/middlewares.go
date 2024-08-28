@@ -35,7 +35,7 @@ func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
 		}
 
 		headers := c.Request.Header
-		canonicalKey := http.CanonicalHeaderKey("HashSHA256")
+		canonicalKey := http.CanonicalHeaderKey("Hash")
 
 		if _, ok := headers[canonicalKey]; !ok {
 			c.Next()

@@ -88,7 +88,7 @@ func (uc UserClient) SendLogsInBatches(metrics []m.UpdateMetricsModel, retrError
 		dataHash = utlis.Hash(compressedBody, []byte(uc.hashKey))
 	}
 
-	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("HashSHA256", dataHash).Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Hash", dataHash).Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 	return errors.Join(errs...)
 }
 
@@ -123,7 +123,7 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 		dataHash = string(utlis.Hash(compressedBody, []byte(uc.hashKey)))
 	}
 
-	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Set("HashSHA256", dataHash).Send(string(compressedBody)).End()
+	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Set("Hash", dataHash).Send(string(compressedBody)).End()
 
 	if errs != nil {
 		uc.logger.Infoln("Error while sending data  ", errs, " response: ", resp)
