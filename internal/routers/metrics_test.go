@@ -14,7 +14,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-const hashKey = "hashKey"
+const hashKey = ""
 
 func TestBase(t *testing.T) {
 	ctrl := gomock.NewController(t)
