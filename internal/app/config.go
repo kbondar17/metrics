@@ -2,6 +2,7 @@ package app
 
 import (
 	"flag"
+	"log"
 	"os"
 	"strconv"
 )
@@ -84,5 +85,8 @@ func NewAppConfigFromEnv() *AppConfig {
 	}
 
 	storageConf := StorageConf{StoragePath: *storagePath, RestoreOnStartUp: *restoreOnStartUp, MustSync: mustSync, StoreInterval: *storeInterval, DBDNS: *dbDNS}
+
+	log.Println("App Config: ", "host: ", *host, "storagePath: ", *storagePath, "restoreOnStartUp: ", *restoreOnStartUp, "storeInterval: ", *storeInterval, "dbDNS: ", *dbDNS, "hashKey: ", *hashKey)
+
 	return NewAppConfig(*host, storageConf, *hashKey)
 }
