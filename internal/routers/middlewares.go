@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	utils "metrics/internal/myutils"
+	"net/http"
 	"strings"
 	"time"
 
@@ -34,11 +35,13 @@ func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
 		}
 
 		headers := c.Request.Header
-		if _, ok := headers["HashSHA256"]; !ok {
+		canonicalKey := http.CanonicalHeaderKey("HashSHA256")
+
+		if _, ok := headers[canonicalKey]; !ok {
 			c.Next()
 		}
 
-		hash := headers.Get("HashSHA256")
+		hash := headers.Get(canonicalKey)
 		if hash == "" {
 			logger.Error("Error: Hash is empty")
 			c.AbortWithStatus(400)

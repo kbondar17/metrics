@@ -17,9 +17,9 @@ import (
 
 func addMiddleware(r *gin.Engine, logger *zap.SugaredLogger, hashKey string) {
 	r.Use(RequestLogger(logger))
-	// if hashKey != "" {
-	// 	r.Use(HashMiddleware(hashKey, logger))
-	// }
+	if hashKey != "" {
+		r.Use(HashMiddleware(hashKey, logger))
+	}
 	r.Use(DeCompressionMiddleware(logger))
 	r.Use(CompressionMiddleware(logger))
 }
