@@ -137,9 +137,9 @@ func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsMode
 				return err
 			} else {
 				if metric.MType == string(models.CounterType) {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Delta)
+					p.logger.Infof("udpated ok :: %s %s %d", metric.ID, metric.MType, *metric.Delta)
 				} else {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, *metric.Value)
+					p.logger.Infof("udpated ok :: %s %s %f", metric.ID, metric.MType, *metric.Value)
 				}
 			}
 		}

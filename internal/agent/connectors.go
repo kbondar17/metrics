@@ -9,7 +9,7 @@ import (
 	"log"
 	appErros "metrics/internal/errors"
 	m "metrics/internal/models"
-
+	utlis "metrics/internal/myutils"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,6 +23,7 @@ type UserClient struct {
 	baseURL    string
 	httpClient *gorequest.SuperAgent
 	logger     *zap.SugaredLogger
+	hashKey    string
 }
 
 func NewUserClient(config AgentConfig, logger *zap.SugaredLogger) UserClient {
@@ -42,6 +43,7 @@ func NewUserClient(config AgentConfig, logger *zap.SugaredLogger) UserClient {
 		httpClient: client,
 		baseURL:    config.serverAddress,
 		logger:     logger,
+		hashKey:    config.hashKey,
 	}
 	return userClient
 }
@@ -81,8 +83,12 @@ func (uc UserClient) SendLogsInBatches(metrics []m.UpdateMetricsModel, retrError
 	if err != nil {
 		return fmt.Errorf("error while compressing data:  %w", err)
 	}
+	dataHash := ""
+	if uc.hashKey != "" {
+		dataHash = utlis.Hash(compressedBody, []byte(uc.hashKey))
+	}
 
-	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Hash", dataHash).Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 	return errors.Join(errs...)
 }
 
@@ -112,7 +118,12 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 		return
 	}
 
-	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+	dataHash := ""
+	if uc.hashKey != "" {
+		dataHash = string(utlis.Hash(compressedBody, []byte(uc.hashKey)))
+	}
+
+	resp, _, errs := uc.httpClient.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Set("Hash", dataHash).Send(string(compressedBody)).End()
 
 	if errs != nil {
 		uc.logger.Infoln("Error while sending data  ", errs, " response: ", resp)

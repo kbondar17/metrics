@@ -2,6 +2,7 @@ package app
 
 import (
 	"flag"
+	"log"
 	"os"
 	"strconv"
 )
@@ -16,11 +17,12 @@ type StorageConf struct {
 
 type AppConfig struct {
 	host          string
+	hashKey       string
 	StorageConfig StorageConf
 }
 
-func NewAppConfig(host string, StorageConfig StorageConf) *AppConfig {
-	return &AppConfig{host: host, StorageConfig: StorageConfig}
+func NewAppConfig(host string, StorageConfig StorageConf, hashKey string) *AppConfig {
+	return &AppConfig{host: host, StorageConfig: StorageConfig, hashKey: hashKey}
 }
 
 func NewAppConfigFromEnv() *AppConfig {
@@ -65,6 +67,13 @@ func NewAppConfigFromEnv() *AppConfig {
 		dbDNS = &envDBDNS
 	}
 
+	defaultHashKey := ""
+
+	hashKey := flag.String("k", defaultHashKey, "Hash key for SHA256. Default is empty value.")
+	if envHashKey := os.Getenv("KEY"); envHashKey != "" {
+		hashKey = &envHashKey
+	}
+
 	flag.Parse()
 
 	var mustSync bool
@@ -76,5 +85,8 @@ func NewAppConfigFromEnv() *AppConfig {
 	}
 
 	storageConf := StorageConf{StoragePath: *storagePath, RestoreOnStartUp: *restoreOnStartUp, MustSync: mustSync, StoreInterval: *storeInterval, DBDNS: *dbDNS}
-	return NewAppConfig(*host, storageConf)
+
+	log.Println("App Config: ", "host: ", *host, "storagePath: ", *storagePath, "restoreOnStartUp: ", *restoreOnStartUp, "storeInterval: ", *storeInterval, "dbDNS: ", *dbDNS, "hashKey: ", *hashKey)
+
+	return NewAppConfig(*host, storageConf, *hashKey)
 }

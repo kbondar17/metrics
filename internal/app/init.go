@@ -94,22 +94,31 @@ func NewApp(conf *AppConfig) *App {
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
-				if err != nil {
-					logger.Infof("failed to update metric: %v", err)
+				if metric.Value != nil {
+					err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
+					if err != nil {
+						logger.Infof("failed to update metric: %v", err)
+					}
+				} else {
+					logger.Infof("metric.Value is nil for metric: %v", metric)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
-				if err != nil {
-					logger.Infof("failed to update metric: %v", err)
+				if metric.Delta != nil {
+					err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
+					if err != nil {
+						logger.Infof("failed to update metric: %v", err)
+					}
+				} else {
+					logger.Infof("metric.Delta is nil for metric: %v", metric)
 				}
 			}
 		}
 		logger.Info("restored metrics")
+
 	}
 
-	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath)
+	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath, conf.hashKey)
 
 	addDefaultMetrics(repository, logger)
 

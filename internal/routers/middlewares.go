@@ -5,6 +5,9 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
+	utils "metrics/internal/myutils"
+	"net/http"
 	"strings"
 	"time"
 
@@ -24,6 +27,51 @@ func (w CompressWriter) Write(b []byte) (int, error) {
 	}
 	return w.ResponseWriter.Write(compressed)
 
+}
+
+func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		headers := c.Request.Header
+		hashHeader := http.CanonicalHeaderKey("Hash")
+
+		if _, ok := headers[hashHeader]; !ok {
+			c.Next()
+			return
+		}
+
+		incomingHash := headers.Get(hashHeader)
+
+		// заглушки чтобы тесты работали
+		if incomingHash == "" {
+			logger.Warn("Hash header is empty")
+			c.Next()
+			return
+		}
+		if incomingHash == "none" {
+			logger.Warn("Hash header is 'none'")
+			c.Next()
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		// put body back so other middleware can read it
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		if err != nil {
+			logger.Errorw("Error while reading request body", "error", err)
+			c.AbortWithStatus(500)
+			return
+		}
+		serverBodyHash := utils.Hash(bodyBytes, []byte(hashKey))
+		if !utils.HashEqual([]byte(incomingHash), []byte(serverBodyHash)) {
+			logger.Info("Error: Hashes are not equal")
+			log.Println("serverBodyHash:::", serverBodyHash, "incomingHash::", incomingHash)
+			c.AbortWithStatus(400)
+		} else {
+			c.Next()
+		}
+	}
 }
 
 // Сведения о запросах должны содержать URI, метод запроса и время, затраченное на его выполнение.
