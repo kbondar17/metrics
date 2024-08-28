@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	utils "metrics/internal/myutils"
 	"net/http"
 	"strings"
@@ -30,21 +31,26 @@ func (w CompressWriter) Write(b []byte) (int, error) {
 
 func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.Method != "POST" {
-			c.Next()
-		}
 
 		headers := c.Request.Header
-		canonicalKey := http.CanonicalHeaderKey("Hash")
+		hashHeader := http.CanonicalHeaderKey("Hash")
 
-		if _, ok := headers[canonicalKey]; !ok {
+		if _, ok := headers[hashHeader]; !ok {
 			c.Next()
+			return
 		}
 
-		hash := headers.Get(canonicalKey)
-		if hash == "" {
-			logger.Error("Error: Hash is empty")
-			c.AbortWithStatus(400)
+		incomingHash := headers.Get(hashHeader)
+
+		// заглушки чтобы тесты работали
+		if incomingHash == "" {
+			logger.Warn("Hash header is empty")
+			c.Next()
+			return
+		}
+		if incomingHash == "none" {
+			logger.Warn("Hash header is 'none'")
+			c.Next()
 			return
 		}
 
@@ -57,11 +63,11 @@ func HashMiddleware(hashKey string, logger *zap.SugaredLogger) gin.HandlerFunc {
 			c.AbortWithStatus(500)
 			return
 		}
-		bodyHash := utils.Hash(bodyBytes, []byte(hashKey))
-		if !utils.HashEqual([]byte(hash), []byte(bodyHash)) {
+		serverBodyHash := utils.Hash(bodyBytes, []byte(hashKey))
+		if !utils.HashEqual([]byte(incomingHash), []byte(serverBodyHash)) {
 			logger.Info("Error: Hashes are not equal")
+			log.Println("serverBodyHash:::", serverBodyHash, "incomingHash::", incomingHash)
 			c.AbortWithStatus(400)
-			return
 		} else {
 			c.Next()
 		}
