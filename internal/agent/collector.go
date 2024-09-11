@@ -70,7 +70,7 @@ func (coll *Collector) CollectMetrics(pollCount *int32, pollInterval int, report
 				mu.Unlock()
 			}
 			mu.Lock()
-			newContainer.UserMetrcs["RandomValue"] = fmt.Sprintf("%f", rand.Float64())
+			newContainer.UserMetrics["RandomValue"] = fmt.Sprintf("%f", rand.Float64())
 			*pollCount++
 			newContainer.CounterMetrics["PollCount"] = fmt.Sprintf("%d", *pollCount)
 			mu.Unlock()

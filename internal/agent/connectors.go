@@ -8,6 +8,7 @@ import (
 	"fmt"
 	appErros "metrics/internal/errors"
 	m "metrics/internal/models"
+	utlis "metrics/internal/myutils"
 	"sync"
 
 	"net/http"
@@ -22,6 +23,7 @@ type UserClient struct {
 	baseURL    string
 	httpClient *gorequest.SuperAgent
 	logger     *zap.SugaredLogger
+	hashKey    string
 	rateLimit  int
 }
 
@@ -46,6 +48,7 @@ func newClient() *gorequest.SuperAgent {
 		MaxIdleConns:    10,
 		IdleConnTimeout: 30 * time.Second,
 	}
+
 	return client
 }
 
@@ -84,8 +87,12 @@ func (uc UserClient) SendLogsInBatches(metrics []m.UpdateMetricsModel, retrError
 	if err != nil {
 		return fmt.Errorf("error while compressing data:  %w", err)
 	}
+	dataHash := ""
+	if uc.hashKey != "" {
+		dataHash = utlis.Hash(compressedBody, []byte(uc.hashKey))
+	}
 
-	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+	_, _, errs := uc.httpClient.Post(requestURL).Set("Content-Type", "text/plain").Set("Hash", dataHash).Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 	return errors.Join(errs...)
 }
 
@@ -114,9 +121,13 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 		uc.logger.Infow("error while compressing data:  %w", err)
 		return
 	}
-	// при переисползовании клиента горутинами возникает race condition
+	dataHash := ""
+	if uc.hashKey != "" {
+		dataHash = string(utlis.Hash(compressedBody, []byte(uc.hashKey)))
+	}
 	client := newClient()
-	resp, _, errs := client.Post(url).Set("Content-Type", "text/plain").Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
+
+	resp, _, errs := client.Post(url).Set("Content-Type", "text/plain").Set("Hash", dataHash).Set("Content-Encoding", "gzip").Send(string(compressedBody)).End()
 
 	if errs != nil {
 		uc.logger.Infoln("Error while sending data  ", errs, " response: ", resp)
@@ -126,15 +137,25 @@ func (uc UserClient) SendSingleLogCompressed(body m.UpdateMetricsModel) {
 	// uc.logger.Infow("Metric sent", "ID", body.ID)
 }
 
+func (uc UserClient) SendMetricContainer(containerChan chan m.MetricSendContainer) {
+	for container := range containerChan {
+		metrics := container.ConvertContainerToUpdateMetricsModel()
+		for _, metric := range metrics {
+			uc.SendSingleLogCompressed(metric)
+		}
+		uc.logger.Infoln("Container sent")
+	}
+}
+
 func clientWorker(jobs <-chan func()) {
 	for j := range jobs {
 		j()
 	}
 }
 
-func (uc UserClient) SendMetricContainer(dataChan chan m.MetricSendContainer) {
+func (uc UserClient) SendMetricContainerWithRateLimit(dataChan chan m.MetricSendContainer) {
 
-	jobs := make(chan func(), 100)
+	jobs := make(chan func(), uc.rateLimit)
 
 	for i := 0; i < uc.rateLimit; i++ {
 		go clientWorker(jobs)
@@ -143,10 +164,9 @@ func (uc UserClient) SendMetricContainer(dataChan chan m.MetricSendContainer) {
 	for container := range dataChan {
 		startTime := time.Now()
 
-		uc.logger.Infoln("Sending data")
-
 		metrics := container.ConvertContainerToUpdateMetricsModel()
 		for _, metric := range metrics {
+			metric := metric
 			jobs <- func() {
 				uc.SendSingleLogCompressed(metric)
 			}
@@ -194,7 +214,7 @@ func (uc UserClient) MetricSender(batches [][]m.UpdateMetricsModel, reportInterv
 }
 
 func (uc UserClient) SendMetricBatch(metrics []m.UpdateMetricsModel) {
-	fmt.Println("Sending data")
+	uc.logger.Infow("Sending data")
 	retrError := appErros.NewRetryableError()
 
 	closure := func() error {

@@ -28,14 +28,20 @@ func NewWorker(config AgentConfig, logger *zap.SugaredLogger) Worker {
 func (w Worker) Run() {
 
 	var pollCount int32
-
+	dataChan := make(chan m.MetricSendContainer, 10)
 	wg := sync.WaitGroup{}
 
-	dataChan := make(chan m.MetricSendContainer, 10)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.collector.CollectMetrics(&pollCount, w.collector.config.pollInterval, w.collector.config.reportInterval, dataChan)
+	}()
 
-	go w.collector.CollectMetrics(&pollCount, w.collector.config.pollInterval, w.collector.config.reportInterval, dataChan)
-	go w.client.SendMetricContainer(dataChan)
-	wg.Add(2)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.client.SendMetricContainerWithRateLimit(dataChan)
+	}()
+
 	wg.Wait()
-
 }

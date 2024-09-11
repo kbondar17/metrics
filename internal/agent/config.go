@@ -13,6 +13,7 @@ type AgentConfig struct {
 	reportInterval int
 	serverAddress  string
 	sendStrategy   sendStrategy
+	hashKey        string
 	rateLimit      int
 }
 
@@ -27,7 +28,7 @@ func (s sendStrategy) String() string {
 	return [...]string{"Single", "Butches"}[s]
 }
 
-func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string, rateLimit int) AgentConfig {
+func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string, hashKey string, rateLimit int) AgentConfig {
 	u, err := url.Parse(serverAddress)
 	if err != nil {
 		panic(err)
@@ -45,17 +46,18 @@ func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, 
 		reportInterval: reportInterval,
 		serverAddress:  u.String(),
 		sendStrategy:   strategy,
+		hashKey:        hashKey,
 		rateLimit:      rateLimit,
 	}
 }
 
 func NewAgentConfigFromEnv() AgentConfig {
-	reportInterval, pollInterval, serverAddress, dbDNS, rateLimit := parseConfig()
+	reportInterval, pollInterval, serverAddress, dbDNS, hashKey, rateLimit := parseConfig()
 	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n, dbDNS: %s", reportInterval, pollInterval, serverAddress, dbDNS)
-	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS, rateLimit)
+	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS, hashKey, rateLimit)
 }
 
-func parseConfig() (int, int, string, string, int) {
+func parseConfig() (int, int, string, string, string, int) {
 
 	defaultRateLimit := 10
 	if rateLimitEnv, exists := os.LookupEnv("RATE_LIMIT"); exists {
@@ -97,8 +99,16 @@ func parseConfig() (int, int, string, string, int) {
 	if envDBDNS := os.Getenv("DATABASE_DSN"); envDBDNS != "" {
 		dbDNS = &envDBDNS
 	}
+
+	defaultHashKey := ""
+
+	hashKey := flag.String("k", defaultHashKey, "Hash key for SHA256. Default is empty value.")
+	if envHashKey := os.Getenv("KEY"); envHashKey != "" {
+		hashKey = &envHashKey
+	}
+
 	flag.Parse()
 	httpHost := "http://" + *host
 
-	return *reportInterval, *pollInterval, httpHost, *dbDNS, *rateLimit
+	return *reportInterval, *pollInterval, httpHost, *dbDNS, *hashKey, *rateLimit
 }
