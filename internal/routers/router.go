@@ -5,26 +5,29 @@ import (
 	"log"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
-	get "metrics/internal/routers/get"
-	post "metrics/internal/routers/post"
+	"metrics/internal/routers/get"
+	"metrics/internal/routers/post"
+	"net/http"
 
 	_ "encoding/json"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func addMiddleware(r *gin.Engine, logger *zap.SugaredLogger) {
+func addMiddleware(r *gin.Engine, logger *zap.SugaredLogger, hashKey string) {
 	r.Use(RequestLogger(logger))
+	if hashKey != "" {
+		r.Use(HashMiddleware(hashKey, logger))
+	}
 	r.Use(DeCompressionMiddleware(logger))
-	// r.Use(CompressionMiddleware(logger))
+	r.Use(CompressionMiddleware(logger))
 }
 
-func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLogger, syncStorage bool, storagePath string) *gin.Engine {
+func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLogger, syncStorage bool, storagePath string, hashKey string) *gin.Engine {
 	r := gin.New()
 
-	addMiddleware(r, logger)
+	addMiddleware(r, logger, hashKey)
 
 	r.POST("/echo", func(c *gin.Context) {
 		log.Println("body:: ", c.Request.Body)
@@ -40,7 +43,6 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLog
 
 	r.GET("/", func(c *gin.Context) {
 		metrics, err := repository.GetAllMetrics()
-		log.Println("metrics:", metrics)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
@@ -66,7 +68,6 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLog
 
 	getGroup := r.Group("/value")
 	post.GetValue(getGroup, repository, logger)
-
 	get.GetGauge(getGroup.Group("/gauge"), repository, models.GaugeType, logger)
 	get.GetCount(getGroup.Group("/counter"), repository, models.CounterType, logger)
 
