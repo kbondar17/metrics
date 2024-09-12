@@ -116,7 +116,7 @@ func (p PostgresStorage) transactionWrapper(f func(tx *sql.Tx) error) error {
 	return err
 }
 
-func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
+func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
 	query := func(tx *sql.Tx) error {
 		sql := `INSERT INTO metric (id, mtype, delta, value) 
 		VALUES ($1, $2, $3, $4) 
@@ -132,13 +132,12 @@ func (p PostgresStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsMode
 		for _, metric := range metrics {
 			_, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
 			if err != nil {
-				fmt.Println("err while updating:::", err)
 				return err
 			} else {
 				if metric.MType == string(models.CounterType) {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, metric.Delta)
+					p.logger.Infof("udpated ok :: %s %s %d", metric.ID, metric.MType, metric.Delta)
 				} else {
-					fmt.Println("udpated ok :: ", metric.ID, metric.MType, metric.Value)
+					p.logger.Infof("udpated ok :: %s %s %f", metric.ID, metric.MType, metric.Value)
 				}
 			}
 		}
@@ -224,6 +223,38 @@ func (p PostgresStorage) Create(metricName string, metricType models.MetricType)
 	return appErrors.RetryWrapper(transaction, errIsRetriable, p.CanRetrier)
 }
 
+func (p PostgresStorage) UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	query := func(tx *sql.Tx) error {
+		sql := `INSERT INTO metric (id, mtype, delta, value) 
+		VALUES ($1, $2, $3, $4) 
+		ON CONFLICT (id) DO UPDATE 
+		SET 
+			delta = CASE 
+				WHEN metric.mtype = 'gauge' THEN EXCLUDED.delta
+				WHEN metric.mtype = 'counter' THEN metric.delta + EXCLUDED.delta
+			END,
+			value = $4, 
+			updated_at = now()`
+
+		_, err := tx.Exec(sql, metric.ID, metric.MType, metric.Delta, metric.Value)
+		return err
+
+	}
+	transaction := func() error {
+		return p.transactionWrapper(query)
+	}
+
+	err := appErrors.RetryWrapper(transaction, errIsRetriable, p.CanRetrier)
+
+	if err != nil {
+		return fmt.Errorf("unable to update metric: %w", err)
+	}
+	if syncStorage {
+		db.SaveMetric(storagePath, metric)
+	}
+	return nil
+}
+
 func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {
 	var metric models.UpdateMetricsModel
 
@@ -232,13 +263,13 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 		if !ok {
 			return fmt.Errorf("value %s is not int64", value)
 		}
-		metric = models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: val}
+		metric = models.UpdateMetricsModel{ID: name, MType: string(models.CounterType), Delta: &val}
 	} else {
 		val, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("value %s is not int64", value)
 		}
-		metric = models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: val}
+		metric = models.UpdateMetricsModel{ID: name, MType: string(models.GaugeType), Value: &val}
 	}
 
 	query := func(tx *sql.Tx) error {
@@ -267,10 +298,8 @@ func (p PostgresStorage) UpdateMetric(name string, metricType models.MetricType,
 		return fmt.Errorf("unable to update metric: %w", err)
 	}
 	if syncStorage {
-		p.logger.Infoln("saving metric to file: ", metric)
-		err := db.SaveMetric(storagePath, metric)
-		if err != nil {
-			return fmt.Errorf("unable to save metric to file: %w", err)
+		if syncStorage {
+			db.SaveMetric(storagePath, metric)
 		}
 	}
 	return nil
@@ -297,7 +326,8 @@ func (p PostgresStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
 		var metric models.UpdateMetricsModel
 		err = rows.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
 		if err != nil {
-			return nil, fmt.Errorf("unable to scan row: %w", err)
+			p.logger.Errorf("unable to scan row: %w, metric: %v", err, metric)
+			continue
 		}
 		result = append(result, metric)
 	}

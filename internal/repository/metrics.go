@@ -16,7 +16,8 @@ type MetricsCRUDer interface {
 	Create(metricName string, metricType models.MetricType) error
 	GetAllMetrics() ([]models.UpdateMetricsModel, error)
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
-	UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error
+	UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error
+	UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error
 	Ping() error
 }
 
@@ -26,8 +27,9 @@ type Storager interface {
 	GetCountMetricValueByName(name string) (int64, error)
 	Create(metricName string, metricType models.MetricType) error
 	UpdateMetric(name string, metrciType models.MetricType, value interface{}, syncStorage bool, storagePath string) error
+	UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error
 	GetAllMetrics() ([]models.UpdateMetricsModel, error)
-	UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error
+	UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error
 	Ping() error
 }
 
@@ -48,8 +50,12 @@ func (repo MerticsRepo) Ping() error {
 	return nil
 }
 
-func (repo MerticsRepo) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
-	return repo.Storage.UpdateMultipleMetric(metrics)
+func (repo MerticsRepo) UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	return repo.Storage.UpdateMetricNew(metric, syncStorage, storagePath)
+}
+
+func (repo MerticsRepo) UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	return repo.Storage.UpdateMultipleMetric(metrics, syncStorage, storagePath)
 }
 
 func (repo MerticsRepo) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
@@ -96,7 +102,7 @@ func (repo MerticsRepo) Create(metricName string, metricType models.MetricType) 
 	if exists {
 		return er.ErrAlreadyExists
 	}
-	repo.logger.Infof("Создали метрику типа: ", metricType, " с именем: ", metricName)
+	repo.logger.Infof("Создали метрику типа : %v с именем: %v", metricType, metricName)
 	return repo.Storage.Create(metricName, metricType)
 
 }

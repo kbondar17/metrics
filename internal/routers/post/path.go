@@ -21,8 +21,14 @@ func UpdateCounter(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricTyp
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+		metric := models.UpdateMetricsModel{
+			ID:    name,
+			Delta: &value,
+			MType: string(models.CounterType),
+		}
 
-		err = repository.UpdateMetric(name, models.CounterType, value, false, "")
+		err = repository.UpdateMetricNew(metric, false, "")
+		// err = repository.UpdateMetric(name, models.CounterType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "metric not found"})
 			return
@@ -45,14 +51,21 @@ func UpdateGauge(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType 
 
 	rg.POST("/:name/:value", func(c *gin.Context) {
 		name := c.Params.ByName("name")
+
 		value, err := strconv.ParseFloat(c.Params.ByName("value"), 64)
 
 		if err != nil {
 			logger.Infof("error parsing path params: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+		metric := models.UpdateMetricsModel{
+			ID:    name,
+			Value: &value,
+			MType: string(models.GaugeType),
+		}
+		err = repository.UpdateMetricNew(metric, false, "")
 
-		err = repository.UpdateMetric(name, models.GaugeType, value, false, "")
+		// err = repository.UpdateMetric(name, models.GaugeType, value, false, "")
 		if err == er.ErrorNotFound {
 			c.JSON(http.StatusBadRequest, gin.H{"metric name": name})
 		}
