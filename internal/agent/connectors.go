@@ -43,7 +43,7 @@ func newClient() *gorequest.SuperAgent {
 			http.StatusBadGateway,
 			http.StatusServiceUnavailable)
 
-	client.Header.Set("Content-Type", "application/json")
+	client.Header["Content-Type"] = "application/json"
 	client.Client.Transport = &http.Transport{
 		MaxIdleConns:    10,
 		IdleConnTimeout: 30 * time.Second,
