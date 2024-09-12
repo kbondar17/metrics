@@ -1,6 +1,7 @@
 package get
 
 import (
+	"errors"
 	er "metrics/internal/errors"
 	"metrics/internal/models"
 	repo "metrics/internal/repository"
@@ -15,8 +16,12 @@ func GetCount(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType mod
 	rg.GET("/:name", func(c *gin.Context) {
 		metricName := c.Params.ByName("name")
 		metric, err := repository.GetCountMetricValueByName(metricName)
-		if err != nil {
+		if errors.Is(err, er.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(200, metric)
@@ -29,7 +34,7 @@ func GetGauge(rg *gin.RouterGroup, repository repo.MetricsCRUDer, metricType mod
 	rg.GET("/:name", func(c *gin.Context) {
 		metricName := c.Params.ByName("name")
 		metric, err := repository.GetGaugeMetricValueByName(metricName, metricType)
-		if err == er.ErrorNotFound {
+		if errors.Is(err, er.ErrorNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"metric name": metricName})
 			return
 		}

@@ -38,10 +38,7 @@ func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 			a.logger.Errorf("failed to get metrics: %w", err)
 		}
 		for _, metric := range metrics {
-			err := db.SaveMetric(fname, metric)
-			if err != nil {
-				a.logger.Errorf("failed to save metric: %w", err)
-			}
+			db.SaveMetric(fname, metric)
 		}
 		time.Sleep(time.Duration(storeInterval) * time.Second)
 	}
@@ -94,22 +91,26 @@ func NewApp(conf *AppConfig) *App {
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				err := repository.UpdateMetric(metric.ID, m.GaugeType, metric.Value, false, "")
+
+				// err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
+				err := repository.UpdateMetricNew(metric, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				err := repository.UpdateMetric(metric.ID, m.CounterType, metric.Delta, false, "")
+				// err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
+				err := repository.UpdateMetricNew(metric, false, "")
 				if err != nil {
 					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 		}
 		logger.Info("restored metrics")
+
 	}
 
-	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath)
+	router := routes.RegisterMerticsRoutes(repository, logger, conf.StorageConfig.MustSync, conf.StorageConfig.StoragePath, conf.hashKey)
 
 	addDefaultMetrics(repository, logger)
 

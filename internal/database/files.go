@@ -4,25 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"metrics/internal/models"
 	"os"
 	"sync"
 
 	"go.uber.org/zap"
 )
-
-func createFile(fname string) error {
-	file, err := os.OpenFile(fname, os.O_CREATE|os.O_EXCL, 0666)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.Write([]byte("[]"))
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 func Load(fname string, logger *zap.SugaredLogger) ([]models.UpdateMetricsModel, error) {
 	var fileRMutex = &sync.RWMutex{}
@@ -68,28 +56,26 @@ func Load(fname string, logger *zap.SugaredLogger) ([]models.UpdateMetricsModel,
 
 }
 
-// TODO: LOGGER
-// SaveMetric saves metric to file
-func SaveMetric(fname string, data models.UpdateMetricsModel) error {
+// SaveMetric saves metric to a file
+func SaveMetric(fname string, metric models.UpdateMetricsModel) {
 	var fileMutex = &sync.Mutex{}
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
 
 	file, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		return fmt.Errorf("error opening file: %w", err)
+		log.Println("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	jsonData, err := json.Marshal(data)
+	jsonData, err := json.Marshal(metric)
 	if err != nil {
-		return fmt.Errorf("error marshalling data: %w", err)
+		log.Println("error marshalling data: %w", err)
 	}
 	_, err = file.Write(append(jsonData, '\n'))
 
 	if err != nil {
-		return fmt.Errorf("error writing to file: %w", err)
+		log.Println("error writing to file: %w", err)
 	}
 
-	return nil
 }
