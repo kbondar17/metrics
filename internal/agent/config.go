@@ -14,6 +14,7 @@ type AgentConfig struct {
 	serverAddress  string
 	sendStrategy   sendStrategy
 	hashKey        string
+	rateLimit      int
 }
 
 type sendStrategy int
@@ -27,7 +28,7 @@ func (s sendStrategy) String() string {
 	return [...]string{"Single", "Butches"}[s]
 }
 
-func newAgentConfig(pollInterval int, reportInterval int, serverAddress, dbDNS, hashKey string) AgentConfig {
+func newAgentConfig(pollInterval int, reportInterval int, serverAddress string, dbDNS string, hashKey string, rateLimit int) AgentConfig {
 	u, err := url.Parse(serverAddress)
 	if err != nil {
 		panic(err)
@@ -46,16 +47,27 @@ func newAgentConfig(pollInterval int, reportInterval int, serverAddress, dbDNS, 
 		serverAddress:  u.String(),
 		sendStrategy:   strategy,
 		hashKey:        hashKey,
+		rateLimit:      rateLimit,
 	}
 }
 
 func NewAgentConfigFromEnv() AgentConfig {
-	reportInterval, pollInterval, serverAddress, dbDNS, hashKey := parseConfig()
-	log.Printf("\n\nAgent config: reportInterval: %d, pollInterval: %d, serverAddress: %s, dbDNS: %s hashKey: %s \n\n", reportInterval, pollInterval, serverAddress, dbDNS, hashKey)
-	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS, hashKey)
+	reportInterval, pollInterval, serverAddress, dbDNS, hashKey, rateLimit := parseConfig()
+	log.Printf("Agent config: reportInterval: %d, pollInterval: %d, serverAddress: %s \n, dbDNS: %s", reportInterval, pollInterval, serverAddress, dbDNS)
+	return newAgentConfig(pollInterval, reportInterval, serverAddress, dbDNS, hashKey, rateLimit)
 }
 
-func parseConfig() (int, int, string, string, string) {
+func parseConfig() (int, int, string, string, string, int) {
+
+	defaultRateLimit := 10
+	if rateLimitEnv, exists := os.LookupEnv("RATE_LIMIT"); exists {
+		if rateLimit, err := strconv.Atoi(rateLimitEnv); err == nil {
+			defaultRateLimit = rateLimit
+		}
+	}
+
+	rateLimit := flag.Int("l", defaultRateLimit, "Количественно одновременных запросов на сервер. По умолчанию 10")
+
 	defaultHost := "localhost:8080"
 	if host, exists := os.LookupEnv("ADDRESS"); exists {
 		defaultHost = host
@@ -98,5 +110,5 @@ func parseConfig() (int, int, string, string, string) {
 	flag.Parse()
 	httpHost := "http://" + *host
 
-	return *reportInterval, *pollInterval, httpHost, *dbDNS, *hashKey
+	return *reportInterval, *pollInterval, httpHost, *dbDNS, *hashKey, *rateLimit
 }

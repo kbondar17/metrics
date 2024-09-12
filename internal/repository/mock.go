@@ -126,18 +126,32 @@ func (mr *MockMetricsCRUDerMockRecorder) UpdateMetric(name, metrciType, value, s
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath)
 }
 
-// UpdateMultipleMetric mocks base method.
-func (m *MockMetricsCRUDer) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
+// UpdateMetricNew mocks base method.
+func (m *MockMetricsCRUDer) UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMultipleMetric", metrics)
+	ret := m.ctrl.Call(m, "UpdateMetricNew", metric, syncStorage, storagePath)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMetricNew indicates an expected call of UpdateMetricNew.
+func (mr *MockMetricsCRUDerMockRecorder) UpdateMetricNew(metric, syncStorage, storagePath any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetricNew", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMetricNew), metric, syncStorage, storagePath)
+}
+
+// UpdateMultipleMetric mocks base method.
+func (m *MockMetricsCRUDer) UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMultipleMetric", metrics, syncStorage, storagePath)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMultipleMetric indicates an expected call of UpdateMultipleMetric.
-func (mr *MockMetricsCRUDerMockRecorder) UpdateMultipleMetric(metrics any) *gomock.Call {
+func (mr *MockMetricsCRUDerMockRecorder) UpdateMultipleMetric(metrics, syncStorage, storagePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMultipleMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMultipleMetric), metrics)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMultipleMetric", reflect.TypeOf((*MockMetricsCRUDer)(nil).UpdateMultipleMetric), metrics, syncStorage, storagePath)
 }
 
 // MockStorager is a mock of Storager interface.
@@ -265,16 +279,30 @@ func (mr *MockStoragerMockRecorder) UpdateMetric(name, metrciType, value, syncSt
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMetric), name, metrciType, value, syncStorage, storagePath)
 }
 
-// UpdateMultipleMetric mocks base method.
-func (m *MockStorager) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
+// UpdateMetricNew mocks base method.
+func (m *MockStorager) UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMultipleMetric", metrics)
+	ret := m.ctrl.Call(m, "UpdateMetricNew", metric, syncStorage, storagePath)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMetricNew indicates an expected call of UpdateMetricNew.
+func (mr *MockStoragerMockRecorder) UpdateMetricNew(metric, syncStorage, storagePath any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetricNew", reflect.TypeOf((*MockStorager)(nil).UpdateMetricNew), metric, syncStorage, storagePath)
+}
+
+// UpdateMultipleMetric mocks base method.
+func (m *MockStorager) UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMultipleMetric", metrics, syncStorage, storagePath)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMultipleMetric indicates an expected call of UpdateMultipleMetric.
-func (mr *MockStoragerMockRecorder) UpdateMultipleMetric(metrics any) *gomock.Call {
+func (mr *MockStoragerMockRecorder) UpdateMultipleMetric(metrics, syncStorage, storagePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMultipleMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMultipleMetric), metrics)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMultipleMetric", reflect.TypeOf((*MockStorager)(nil).UpdateMultipleMetric), metrics, syncStorage, storagePath)
 }

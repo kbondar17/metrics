@@ -131,10 +131,10 @@ func CompressionMiddleware(logger *zap.SugaredLogger) gin.HandlerFunc {
 			compressWriter := CompressWriter{c.Writer}
 			compressWriter.Header().Set("Content-Encoding", "gzip")
 			c.Writer = compressWriter
-			logger.Info("sending gzip")
+			// logger.Info("sending gzip")
 			c.Next()
 		} else {
-			logger.Info("no gzip")
+			// logger.Info("no gzip")
 			c.Next()
 		}
 	}
@@ -146,7 +146,7 @@ func DeCompressionMiddleware(logger *zap.SugaredLogger) gin.HandlerFunc {
 		if !strings.Contains(headers.Get("Content-Encoding"), "gzip") {
 			c.Next()
 		} else {
-			logger.Info("decompressing gzip")
+			// logger.Info("decompressing gzip")
 
 			bodyBytes, err := io.ReadAll(c.Request.Body)
 			if err != nil {

@@ -1,9 +1,11 @@
 server:
-	go run ./cmd/server -k=secret! -d="host=localhost port=6432 dbname=yandex user=postgres password=postgres sslmode=disable"
+	go run ./cmd/server -d="host=localhost port=6432 dbname=yandex user=postgres password=postgres sslmode=disable"
 
 server-mem:
 	go run ./cmd/server -a=localhost:37557
 
+# agent:
+# go run ./cmd/agent -r=4 -p=2 с
 
 db:
 	docker-compose up -d
@@ -13,7 +15,7 @@ migr:
 	goose -dir internal/database/postgres/migrations postgres "host=localhost port=6432 dbname=yandex user=postgres password=postgres sslmode=disable" up
 
 agent:
-	go run -race ./cmd/agent -r=4 -p=2 -k=secret!   -d="host=localhost port=6432 dbname=yandex user=postgres password=postgres sslmode=disable"
+	go run -race ./cmd/agent -r=10 -p=3 -l=1  -d="host=localhost port=6432 dbname=yandex user=postgres password=postgres sslmode=disable"
  	
 
 temp:

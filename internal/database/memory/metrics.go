@@ -22,8 +22,14 @@ func (ms *MemStorage) Ping() error {
 	return nil
 }
 
-func (ms *MemStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel) error {
-	panic("implement me")
+func (ms *MemStorage) UpdateMultipleMetric(metrics []models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+	for _, metric := range metrics {
+		err := ms.UpdateMetricNew(metric, syncStorage, storagePath)
+		if err != nil {
+			log.Println("failed to update metric: ", err)
+		}
+	}
+	return nil
 }
 
 func (ms *MemStorage) GetAllMetrics() ([]models.UpdateMetricsModel, error) {
@@ -73,7 +79,7 @@ func (ms *MemStorage) GetGaugeMetricValueByName(name string, mType models.Metric
 		val, ok := ms.GaugeData[name]
 		ms.mu.RUnlock()
 		if !ok {
-			return 0, er.ErrParse
+			return 0, er.ErrorNotFound
 		}
 		return val, nil
 	default:
@@ -103,6 +109,25 @@ func (ms *MemStorage) Create(metricName string, metricType models.MetricType) er
 		log.Println("unknown metric type", metricType, metricName)
 		return er.ErrParse
 	}
+}
+
+func (ms *MemStorage) UpdateMetricNew(metric models.UpdateMetricsModel, syncStorage bool, storagePath string) error {
+
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	switch metric.MType {
+	case string(models.GaugeType):
+		ms.GaugeData[metric.ID] = *metric.Value
+	case string(models.CounterType):
+		ms.CountData[metric.ID] += *metric.Delta
+	}
+
+	if syncStorage {
+		db.SaveMetric(storagePath, metric)
+	}
+
+	return nil
 }
 
 func (ms *MemStorage) UpdateMetric(name string, metricType models.MetricType, value interface{}, syncStorage bool, storagePath string) error {

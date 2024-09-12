@@ -38,10 +38,7 @@ func (a *App) SaveDataInInterval(storeInterval int, fname string) {
 			a.logger.Errorf("failed to get metrics: %w", err)
 		}
 		for _, metric := range metrics {
-			err := db.SaveMetric(fname, metric)
-			if err != nil {
-				a.logger.Errorf("failed to save metric: %w", err)
-			}
+			db.SaveMetric(fname, metric)
 		}
 		time.Sleep(time.Duration(storeInterval) * time.Second)
 	}
@@ -94,23 +91,18 @@ func NewApp(conf *AppConfig) *App {
 		}
 		for _, metric := range restoredMetrics {
 			if metric.MType == string(m.GaugeType) {
-				if metric.Value != nil {
-					err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
-					if err != nil {
-						logger.Infof("failed to update metric: %v", err)
-					}
-				} else {
-					logger.Infof("metric.Value is nil for metric: %v", metric)
+
+				// err := repository.UpdateMetric(metric.ID, m.GaugeType, *metric.Value, false, "")
+				err := repository.UpdateMetricNew(metric, false, "")
+				if err != nil {
+					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 			if metric.MType == string(m.CounterType) {
-				if metric.Delta != nil {
-					err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
-					if err != nil {
-						logger.Infof("failed to update metric: %v", err)
-					}
-				} else {
-					logger.Infof("metric.Delta is nil for metric: %v", metric)
+				// err := repository.UpdateMetric(metric.ID, m.CounterType, *metric.Delta, false, "")
+				err := repository.UpdateMetricNew(metric, false, "")
+				if err != nil {
+					logger.Infof("failed to update metric: %v", err)
 				}
 			}
 		}

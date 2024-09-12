@@ -7,9 +7,9 @@ import (
 	repo "metrics/internal/repository"
 	"metrics/internal/routers/get"
 	"metrics/internal/routers/post"
+	"net/http"
 
 	_ "encoding/json"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -46,6 +46,7 @@ func RegisterMerticsRoutes(repository repo.MetricsCRUDer, logger *zap.SugaredLog
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+
 		c.HTML(http.StatusOK, "metrics.html", gin.H{
 			"metrics": metrics,
 		})

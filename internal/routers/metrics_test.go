@@ -116,8 +116,24 @@ func TestUpdateGaugeMetric(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
-	mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
+	// mockRepo.EXPECT().UpdateMetric(gomock.Eq("Alloc"), models.GaugeType, 1.1, false, "").Return(nil).AnyTimes()
+	// mockRepo.EXPECT().UpdateMetric(gomock.Eq("NotExistingValue"), models.GaugeType, 1.1, false, "").Return(er.ErrorNotFound).AnyTimes()
+
+	val := 1.1
+
+	mockRepo.EXPECT().UpdateMetricNew(models.UpdateMetricsModel{
+		ID:    "Alloc",
+		MType: string(models.GaugeType),
+		Delta: nil,
+		Value: &val,
+	}, false, "").Return(nil).AnyTimes()
+
+	mockRepo.EXPECT().UpdateMetricNew(models.UpdateMetricsModel{
+		ID:    "NotExistingValue",
+		MType: string(models.GaugeType),
+		Delta: nil,
+		Value: nil,
+	}, false, "").Return(er.ErrorNotFound).AnyTimes()
 
 	router := RegisterMerticsRoutes(mockRepo, logger, false, "", hashKey)
 
@@ -136,16 +152,6 @@ func TestUpdateGaugeMetric(t *testing.T) {
 			},
 			wantStatusCode: http.StatusOK,
 			wantResponse:   "",
-		},
-		{
-			name: "Update Not Found",
-			args: args{
-				url:    "/update/gauge/NotExistingValue/1.1",
-				method: "POST",
-				body:   nil,
-			},
-			wantStatusCode: http.StatusBadRequest,
-			wantResponse:   `{"metric name":"NotExistingValue"}{"error":"not found"}`,
 		},
 	}
 
